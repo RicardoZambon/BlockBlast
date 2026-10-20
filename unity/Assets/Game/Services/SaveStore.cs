@@ -21,13 +21,14 @@ namespace BlockPuzzle.Game
 
         public void Write(SaveData data) => JsonFile.Write(_path, data);
 
-        /// <summary>False for a missing, unreadable or other-version file. Never throws because of what the file contains.</summary>
+        /// <summary>
+        /// The save, or the one before it when the save is missing, unreadable or from another version. False when
+        /// neither will do. Never throws because of what the files contain.
+        /// </summary>
         public bool TryRead(out SaveData data)
         {
-            data = new SaveData();
-            if (!JsonFile.TryRead(_path, out SaveData read) || read.Version != SaveData.CurrentVersion) return false;
-            if (read.Game == null) read.Game = new GameSnapshot();
-            data = read;
+            if (!JsonFile.TryReadOrBackup(_path, read => read.Version == SaveData.CurrentVersion, out data)) return false;
+            if (data.Game == null) data.Game = new GameSnapshot();
             return true;
         }
     }

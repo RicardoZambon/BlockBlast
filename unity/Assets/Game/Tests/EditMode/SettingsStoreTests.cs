@@ -71,6 +71,20 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [Test]
+        public void A_damaged_settings_file_falls_back_to_the_settings_before()
+        {
+            var store = new SettingsStore(SettingsPath);
+            store.Save(new SettingsData { Music = false });
+            store.Save(new SettingsData { Music = false, Haptics = false });
+
+            File.WriteAllText(SettingsPath, "{ damaged");
+            var loaded = store.Load();
+
+            Assert.IsFalse(loaded.Music, "the backup holds the settings before the last change");
+            Assert.IsTrue(loaded.Haptics);
+        }
+
+        [Test]
         public void A_failed_settings_save_does_not_throw()
         {
             Directory.CreateDirectory(SettingsPath);   // a folder where the file goes
