@@ -11,14 +11,17 @@ public sealed class SimOptions
     public IReadOnlyList<string> Profiles { get; private set; } = AllProfiles;
     public ulong Seed { get; private set; } = 1;
 
-    /// <summary>Each simulated player plays GamesPerPlayer games in a row, so quick losses can trigger mercy.</summary>
-    public int Players => Math.Max(1, Games / GamesPerPlayer);
+    /// <summary>
+    /// Simulated players needed to play exactly Games games. Each plays up to GamesPerPlayer games in a row,
+    /// so quick losses can trigger mercy; the last player may play fewer.
+    /// </summary>
+    public int Players => (int)(((long)Games + GamesPerPlayer - 1) / GamesPerPlayer);
 
     public const string Usage = """
         Usage: dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- [options]
 
           --games N             total games per profile (default 20000)
-          --games-per-player N  games each simulated player plays in a row (default 50)
+          --games-per-player N  games each simulated player plays in a row (default 50; the last may play fewer)
           --bot greedy|random   who plays (default greedy)
           --profile NAME        gentle, baseline, hard or all (default all)
           --seed N              base seed (default 1)

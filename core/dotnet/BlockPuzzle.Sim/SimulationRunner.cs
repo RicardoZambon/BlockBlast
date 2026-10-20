@@ -10,14 +10,17 @@ public static class SimulationRunner
     /// <summary>Stops endless games; a high share of capped games means the profile is far too easy.</summary>
     public const int PlacementCap = 10_000;
 
-    public static GameResult[] Run(PieceCatalog catalog, GeneratorSettings generator, ScoringSettings scoring, string bot, int players, int gamesPerPlayer, ulong seed)
+    /// <summary>Plays exactly <paramref name="games"/> games, split into players of up to <paramref name="gamesPerPlayer"/> games each.</summary>
+    public static GameResult[] Run(PieceCatalog catalog, GeneratorSettings generator, ScoringSettings scoring, string bot, int games, int gamesPerPlayer, ulong seed)
     {
-        var results = new GameResult[players * gamesPerPlayer];
+        var results = new GameResult[games];
+        int players = (int)(((long)games + gamesPerPlayer - 1) / gamesPerPlayer);
         Parallel.For(0, players, player =>
         {
             IBot playerBot = bot == "random" ? new RandomBot(Mix(seed, (ulong)player, 0xB07)) : new GreedyBot();
             int quickLosses = 0;
-            for (int g = 0; g < gamesPerPlayer; g++)
+            int gamesForPlayer = Math.Min(gamesPerPlayer, games - player * gamesPerPlayer);
+            for (int g = 0; g < gamesForPlayer; g++)
             {
                 var game = new GameSession(catalog, generator, scoring, Mix(seed, (ulong)player, (ulong)g), g, quickLosses);
                 bool capped = false;

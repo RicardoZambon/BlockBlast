@@ -19,8 +19,8 @@ if (options is null)
     return 0;
 }
 
-Console.WriteLine($"{options.Players * options.GamesPerPlayer:N0} games per profile " +
-                  $"({options.Players:N0} players x {options.GamesPerPlayer} games), bot: {options.Bot}, seed: {options.Seed}");
+Console.WriteLine($"{options.Games:N0} games per profile " +
+                  $"({options.Players:N0} players, up to {options.GamesPerPlayer} games each), bot: {options.Bot}, seed: {options.Seed}");
 Console.WriteLine();
 Console.WriteLine(Report.Header);
 
@@ -28,7 +28,7 @@ foreach (string profile in options.Profiles)
 {
     var settings = GeneratorSettings.ForProfile(profile);
     var stopwatch = Stopwatch.StartNew();
-    var results = SimulationRunner.Run(PieceCatalog.Standard, settings, new ScoringSettings(), options.Bot, options.Players, options.GamesPerPlayer, options.Seed);
+    var results = SimulationRunner.Run(PieceCatalog.Standard, settings, new ScoringSettings(), options.Bot, options.Games, options.GamesPerPlayer, options.Seed);
     Console.WriteLine(Report.Row(profile, options.Bot, results, stopwatch.Elapsed));
 }
 
