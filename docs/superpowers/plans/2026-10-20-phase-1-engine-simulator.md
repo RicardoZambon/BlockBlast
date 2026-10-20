@@ -3194,13 +3194,19 @@ The parts of Task 1.8 that don't need Unity went first, test-first, in their own
 - **`GameSession.NextRecentQuickLosses`:** the quick-loss rule now lives in the engine.
   - Pass it as `recentQuickLosses` to the player's next game. The simulator now does the same.
   - It stops at `int.MaxValue` instead of wrapping.
-- **Nullable:** the engine project turns nullable off, as Unity does, and every file opts in with `#nullable enable`. A file that forgets it fails the build with CS8632, where Unity would only warn.
+- **Nullable:** the engine project turns nullable off, as Unity does, and every file opts in with `#nullable enable`.
+  - A test checks that every engine file starts with the directive.
+  - Without it, a file that uses annotations fails the build with CS8632, where Unity would only warn. Any other file would silently lose its nullable checks.
 - **Dealing:**
   - `PieceGenerator.Deal` and `DealRescue` gain overloads that fill a three-slot tray.
-  - `GameSession` deals straight into its own tray, so a game allocates nothing per deal. A test checks this with `GC.GetAllocatedBytesForCurrentThread`.
+  - `GameSession` deals straight into its own tray, and the generator sizes its scratch lists up front. So a game allocates nothing per deal, starting with its first. A test checks this on a new generator with `GC.GetAllocatedBytesForCurrentThread`.
   - `CanClearLine` is worked out once per board instead of on every helpful pick. A desktop benchmark measured helpful-phase deals on a board that changes every deal: they are 1.15–2.7 times faster. For example, baseline on an empty board went from 18.9 to 7.1 µs per deal.
 
-The golden values and the 20,000-game medians (155, 98 and 46) didn't change. There are now 160 tests: 123 for the engine and 37 for the simulator.
+A fresh review found nothing critical or important. It found two minor gaps, both now fixed:
+- A new generator's first deals still grew its scratch lists.
+- The build alone only caught a missing directive in files that use annotations.
+
+The golden values and the 20,000-game medians (155, 98 and 46) didn't change. There are now 161 tests: 124 for the engine and 37 for the simulator.
 
 Still open for Task 1.8; each needs Unity or a phone:
 - Create the Unity 6.3 LTS project and build the prototype itself (the master plan's 1.8 list).
