@@ -154,7 +154,7 @@ namespace BlockPuzzle.Game
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
             var game = go.AddComponent<GameController>();
-            game.Boot(_saveStore!, _save, mode, _share);
+            game.Boot(_saveStore!, _save, mode, _share, _settings);
             game.HomeRequested += ShowHome;
             return game;
         }

@@ -17,6 +17,7 @@ namespace BlockPuzzle.Game
         SaveData _save = new SaveData();
         GameMode _mode = null!;
         Action<string>? _share;
+        SettingsData _settings = new SettingsData();
         GameSession? _game;
         PointerInput? _input;
         bool _booted;
@@ -42,7 +43,10 @@ namespace BlockPuzzle.Game
         public HudView Hud { get; private set; } = null!;
         public PauseView Pause { get; private set; } = null!;
         public GameOverView GameOver { get; private set; } = null!;
+        public FeedbackPlayer Feedback { get; private set; } = null!;
         public bool IsPaused { get; private set; }
+
+        const float BoardHalfCells = BlockPuzzle.Core.Board.Size / 2f;   // the board's middle, in cells from its top
 
         /// <summary>The band at the top of the safe area, in world units, kept free for the banner ad.</summary>
         public float BannerHeight { get; private set; }
@@ -92,9 +96,10 @@ namespace BlockPuzzle.Game
 
         /// <summary>
         /// Builds the game against a store and the data read from it; App calls this, so every screen shares one SaveData.
-        /// share posts the Daily's result (DailyShare.Share unless a test gives its own).
+        /// share posts the Daily's result (DailyShare.Share unless a test gives its own). settings is App's own SettingsData,
+        /// so a toggle changed in Settings takes effect on the next move; without it, every effect is on.
         /// </summary>
-        public void Boot(SaveStore store, SaveData save, GameMode mode, Action<string>? share = null)
+        public void Boot(SaveStore store, SaveData save, GameMode mode, Action<string>? share = null, SettingsData? settings = null)
         {
             if (_booted) return;
             var camera = Camera.main;
@@ -105,6 +110,7 @@ namespace BlockPuzzle.Game
             _save = save;
             _mode = mode;
             _share = share;
+            if (settings != null) _settings = settings;
 
             BannerHeight = BannerWorldHeight(camera);
             Layout = new BoardLayout(SafeWorldRect(camera), BannerHeight);
@@ -119,6 +125,9 @@ namespace BlockPuzzle.Game
             var safeArea = SafeAreaPanel.Create(canvas);
             DebugOverlay.CreateIfDevelopment(safeArea);   // development builds only
             if (mode.CurrentGuide != null) Hint = TutorialHintView.Create(safeArea, SkipGuided);
+            float boardMiddle = ScreenFraction(camera, Layout.BoardTopLeft.y - BoardHalfCells * Layout.CellSize);
+            var praise = UiFactory.FittedText(UiFactory.Rect(canvas, "Praise", new Vector2(0.5f, boardMiddle), new Vector2(900, 200), Vector2.zero),
+                110, Color.white);
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
             GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? PlayAgain : (Action?)null,
                 mode.CanShare ? ShareResult : (Action?)null, RequestHome);
@@ -129,6 +138,8 @@ namespace BlockPuzzle.Game
             Drag.Init(Layout, Board, Tray, () => Game, OnPlaced);
             _input = gameObject.AddComponent<PointerInput>();
             _input.Init(camera, Drag);
+            Feedback = gameObject.AddComponent<FeedbackPlayer>();
+            Feedback.Init(Board, Layout, praise);
             if (mode.CurrentGuide != null) Hand = HandMarker.Create(transform, Layout.CellSize, () => Drag.IsDragging || Drag.IsReturning || IsPaused);
 
             _game = mode.Resume();
@@ -217,8 +228,9 @@ namespace BlockPuzzle.Game
             SaveGameInProgress();
         }
 
-        void OnPlaced(PlacementOutcome outcome)
+        void OnPlaced(PlacementOutcome outcome, ulong placedMask)
         {
+            var cue = FeedbackRules.For(outcome, _settings);
             if (_mode.CurrentGuide != null)
             {
                 // A guided move. The next step's game replaces the tray the engine just dealt before anything shows it.
@@ -230,10 +242,12 @@ namespace BlockPuzzle.Game
                 }
                 _game = next;
                 RenderAll();
+                Feedback.Play(cue, placedMask, outcome.ClearedMask);
                 ApplyGuide();
                 return;
             }
             RenderAll();
+            Feedback.Play(cue, placedMask, outcome.ClearedMask);
             if (Game.IsGameOver) FinishGame();
             else SaveGameInProgress();
         }
@@ -275,6 +289,7 @@ namespace BlockPuzzle.Game
             Board.Render(game.Board);
             Tray.Render(game);
             Hud.Show(game.Score, Math.Max(game.Score, _mode.Best));
+            Hud.ShowStreak(game.Streak);
         }
 
         T Child<T>(string name) where T : Component
