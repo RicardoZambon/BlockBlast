@@ -66,6 +66,14 @@ namespace BlockPuzzle.Core
         public Board Board { get; private set; }
         /// <summary>Up to three pieces; null where a piece was already placed.</summary>
         public ReadOnlySpan<PieceShape?> Tray => _tray;
+
+        /// <summary>The piece in a tray slot, or null once it was placed. Unlike Tray, it can be used in coroutines and async code.</summary>
+        public PieceShape? GetTrayPiece(int slot)
+        {
+            if ((uint)slot >= (uint)_tray.Length) throw new ArgumentOutOfRangeException(nameof(slot));
+            return _tray[slot];
+        }
+
         public int Score => _score.Score;
         public int Streak => _score.Streak;
         public int MaxStreak => _score.MaxStreak;
@@ -75,6 +83,13 @@ namespace BlockPuzzle.Core
         public int RecentQuickLosses { get; }
         public bool IsMercyGame =>
             _generatorSettings.MercyAfterQuickLosses > 0 && RecentQuickLosses >= _generatorSettings.MercyAfterQuickLosses;
+        /// <summary>
+        /// What to pass as recentQuickLosses to this player's next game, once this one has ended: one more than
+        /// RecentQuickLosses if it ended before GeneratorSettings.QuickLossPlacements placements, otherwise 0.
+        /// </summary>
+        public int NextRecentQuickLosses =>
+            Placements >= _generatorSettings.QuickLossPlacements ? 0 :
+            RecentQuickLosses == int.MaxValue ? int.MaxValue : RecentQuickLosses + 1;
         public bool Revived { get; private set; }
         public bool IsGameOver { get; private set; }
 

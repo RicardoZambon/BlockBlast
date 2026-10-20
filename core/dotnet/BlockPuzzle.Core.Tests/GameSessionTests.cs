@@ -10,7 +10,7 @@ public class GameSessionTests
         new(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), seed, gameIndex: 0, recentQuickLosses);
 
     /// <summary>A game in a chosen position, built through a snapshot.</summary>
-    static GameSession Position(Board board, string[] tray, bool revived = false)
+    static GameSession Position(Board board, string[] tray, bool revived = false, int placements = 0, int recentQuickLosses = 0)
     {
         var rng = new Pcg32(99);
         var snapshot = new GameSnapshot
@@ -20,6 +20,8 @@ public class GameSessionTests
             RngState = rng.State,
             RngIncrement = rng.Increment,
             Revived = revived,
+            Placements = placements,
+            RecentQuickLosses = recentQuickLosses,
         };
         return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings());
     }
@@ -353,6 +355,51 @@ public class GameSessionTests
     {
         Assert.False(NewGame(recentQuickLosses: 1).IsMercyGame);
         Assert.True(NewGame(recentQuickLosses: 2).IsMercyGame);
+    }
+
+    [Theory]
+    [InlineData(0, 1, 2)]
+    [InlineData(19, 1, 2)]
+    [InlineData(20, 1, 0)]
+    [InlineData(19, int.MaxValue, int.MaxValue)]   // stops at the maximum instead of wrapping
+    public void A_game_over_before_placement_20_adds_a_quick_loss_and_a_longer_game_resets_them(int placements, int recentQuickLosses, int expected)
+    {
+        var game = Position(TestBoards.Checkerboard, new[] { "i2h", "o3", "o3" }, placements: placements, recentQuickLosses: recentQuickLosses);
+
+        Assert.True(game.IsGameOver);
+        Assert.Equal(expected, game.NextRecentQuickLosses);
+    }
+
+    [Fact]
+    public void The_quick_loss_limit_comes_from_the_settings()
+    {
+        var settings = GeneratorSettings.Baseline();
+        settings.QuickLossPlacements = 0;   // no game is short enough to count
+
+        var game = new GameSession(PieceCatalog.Standard, settings, new ScoringSettings(), seed: 1, recentQuickLosses: 3);
+
+        Assert.Equal(0, game.NextRecentQuickLosses);
+    }
+
+    [Fact]
+    public void GetTrayPiece_returns_each_slot_and_null_once_placed()
+    {
+        var game = NewGame(seed: 7);
+        for (int slot = 0; slot < PieceGenerator.TraySize; slot++) Assert.Same(game.Tray[slot], game.GetTrayPiece(slot));
+
+        var first = game.GetTrayPiece(0)!;
+        Assert.True(game.TryPlace(0, first.AnchorRow(0), first.AnchorCol(0), out _));
+
+        Assert.Null(game.GetTrayPiece(0));
+        Assert.NotNull(game.GetTrayPiece(1));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(3)]
+    public void GetTrayPiece_rejects_a_slot_off_the_tray(int slot)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => NewGame().GetTrayPiece(slot));
     }
 
     [Fact]
