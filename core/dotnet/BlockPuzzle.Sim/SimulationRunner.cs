@@ -13,7 +13,9 @@ public static class SimulationRunner
     /// <summary>Plays exactly <paramref name="games"/> games, split into players of up to <paramref name="gamesPerPlayer"/> games each.</summary>
     public static GameResult[] Run(PieceCatalog catalog, GeneratorSettings generator, ScoringSettings scoring, string bot, int games, int gamesPerPlayer, ulong seed)
     {
-        // Checked here, so a bad name fails before the games start instead of inside Parallel.For.
+        // Checked here, so bad input fails before the games start, instead of inside Parallel.For or with empty results.
+        if (games < 1) throw new ArgumentOutOfRangeException(nameof(games), "At least one game is needed.");
+        if (gamesPerPlayer < 1) throw new ArgumentOutOfRangeException(nameof(gamesPerPlayer), "Each player needs at least one game.");
         if (!Bots.Names.Contains(bot)) throw new ArgumentException($"Unknown bot '{bot}'.", nameof(bot));
 
         var results = new GameResult[games];
