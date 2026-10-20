@@ -4,15 +4,18 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-      - name: Test the engine
+      - name: Test the engine and the simulator
         run: dotnet test core/BlockPuzzle.slnx -c Release
-      - name: Smoke-run the simulator
-        run: dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- --games 500 --profile baseline
+      - name: Check the baseline difficulty target
+        run: dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- --games 20000 --profile baseline --check-target
