@@ -10,6 +10,29 @@ public interface IBot
     bool PlayOneMove(GameSession game);
 }
 
+/// <summary>The bots the simulator can run, by name.</summary>
+public static class Bots
+{
+    static readonly (string Name, Func<ulong, IBot> Create)[] All =
+    {
+        ("greedy", _ => new GreedyBot()),
+        ("random", seed => new RandomBot(seed)),
+    };
+
+    /// <summary>The names --bot accepts.</summary>
+    public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly(Array.ConvertAll(All, bot => bot.Name));
+
+    /// <summary>Creates the named bot. Only bots that make random choices use the seed.</summary>
+    public static IBot Create(string name, ulong seed)
+    {
+        foreach (var bot in All)
+        {
+            if (bot.Name == name) return bot.Create(seed);
+        }
+        throw new ArgumentException($"Unknown bot '{name}'.", nameof(name));
+    }
+}
+
 /// <summary>Picks uniformly among all legal moves: a floor for how hard the generator is.</summary>
 public sealed class RandomBot : IBot
 {

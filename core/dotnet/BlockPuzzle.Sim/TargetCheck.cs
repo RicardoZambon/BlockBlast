@@ -3,6 +3,9 @@ namespace BlockPuzzle.Sim;
 /// <summary>The Phase 1 difficulty target for the baseline profile played by the greedy bot. CI enforces it.</summary>
 public static class TargetCheck
 {
+    public const string Profile = "baseline";
+    public const string Bot = "greedy";
+
     public const int MinMedianPlacements = 80;
     public const int MaxMedianPlacements = 150;
     public const double MaxPercentEndingEarly = 5.0;

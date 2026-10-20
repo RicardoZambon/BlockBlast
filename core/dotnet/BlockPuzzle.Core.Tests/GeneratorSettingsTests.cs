@@ -4,16 +4,28 @@ namespace BlockPuzzle.Core.Tests;
 
 public class GeneratorSettingsTests
 {
+    public static TheoryData<string> ProfileNames => new(GeneratorSettings.ProfileNames);
+
     [Theory]
-    [InlineData("gentle")]
-    [InlineData("baseline")]
-    [InlineData("hard")]
+    [MemberData(nameof(ProfileNames))]
     public void Presets_are_valid(string name)
     {
         var settings = GeneratorSettings.ForProfile(name);
 
         settings.Validate();
         Assert.Equal(name, settings.Name);
+    }
+
+    [Fact]
+    public void ProfileNames_lists_the_presets_from_easiest_to_hardest()
+    {
+        Assert.Equal(new[] { "gentle", "baseline", "hard" }, GeneratorSettings.ProfileNames);
+    }
+
+    [Fact]
+    public void ProfileNames_cannot_be_changed_through_a_cast()
+    {
+        Assert.Throws<NotSupportedException>(() => ((IList<string>)GeneratorSettings.ProfileNames)[0] = "gentle");
     }
 
     [Fact]

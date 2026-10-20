@@ -13,4 +13,11 @@ public class SimulationRunnerTests
         Assert.Equal(games, results.Length);
         Assert.All(results, r => Assert.True(r.Placements > 0));
     }
+
+    [Fact]
+    public void An_unknown_bot_is_rejected_before_any_game_starts()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            SimulationRunner.Run(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), "nope", games: 10, gamesPerPlayer: 5, seed: 1));
+    }
 }

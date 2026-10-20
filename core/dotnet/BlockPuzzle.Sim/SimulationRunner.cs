@@ -13,11 +13,14 @@ public static class SimulationRunner
     /// <summary>Plays exactly <paramref name="games"/> games, split into players of up to <paramref name="gamesPerPlayer"/> games each.</summary>
     public static GameResult[] Run(PieceCatalog catalog, GeneratorSettings generator, ScoringSettings scoring, string bot, int games, int gamesPerPlayer, ulong seed)
     {
+        // Checked here, so a bad name fails before the games start instead of inside Parallel.For.
+        if (!Bots.Names.Contains(bot)) throw new ArgumentException($"Unknown bot '{bot}'.", nameof(bot));
+
         var results = new GameResult[games];
         int players = (int)(((long)games + gamesPerPlayer - 1) / gamesPerPlayer);
         Parallel.For(0, players, player =>
         {
-            IBot playerBot = bot == "random" ? new RandomBot(Mix(seed, (ulong)player, 0xB07)) : new GreedyBot();
+            IBot playerBot = Bots.Create(bot, Mix(seed, (ulong)player, 0xB07));
             int quickLosses = 0;
             int gamesForPlayer = Math.Min(gamesPerPlayer, games - player * gamesPerPlayer);
             for (int g = 0; g < gamesForPlayer; g++)

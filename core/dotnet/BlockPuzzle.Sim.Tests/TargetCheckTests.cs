@@ -6,6 +6,13 @@ public class TargetCheckTests
         placements.Select(p => new GameResult(p, Score: 0, Lines: 0, MaxStreak: 0, Mercy: false, Capped: false)).ToArray();
 
     [Fact]
+    public void The_target_names_a_real_profile_and_bot()
+    {
+        Assert.Contains(TargetCheck.Profile, GeneratorSettings.ProfileNames);
+        Assert.Contains(TargetCheck.Bot, Bots.Names);
+    }
+
+    [Fact]
     public void Results_inside_the_target_pass()
     {
         Assert.Null(TargetCheck.Miss(Games(90, 100, 110)));

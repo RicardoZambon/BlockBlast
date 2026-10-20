@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 
 namespace BlockPuzzle.Core
 {
@@ -122,15 +123,20 @@ namespace BlockPuzzle.Core
             HelpfulUntilPlacement = 0,
         };
 
+        // The presets, from easiest to hardest. Their Name fields are the profile names.
+        static readonly Func<GeneratorSettings>[] Presets = { Gentle, Baseline, Hard };
+
+        /// <summary>The preset profile names, from easiest to hardest. ForProfile accepts each one.</summary>
+        public static IReadOnlyList<string> ProfileNames { get; } = Array.AsReadOnly(Array.ConvertAll(Presets, preset => preset().Name));
+
         public static GeneratorSettings ForProfile(string name)
         {
-            switch (name)
+            foreach (var preset in Presets)
             {
-                case "gentle": return Gentle();
-                case "baseline": return Baseline();
-                case "hard": return Hard();
-                default: throw new ArgumentException($"Unknown generator profile '{name}'.", nameof(name));
+                var settings = preset();
+                if (settings.Name == name) return settings;
             }
+            throw new ArgumentException($"Unknown generator profile '{name}'.", nameof(name));
         }
     }
 }
