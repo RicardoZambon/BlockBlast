@@ -29,8 +29,61 @@ public class GameSessionTests
     static GameSnapshot SavedGame() => NewGame(seed: 7).ToSnapshot();
 
     static void AssertRejected(GameSnapshot snapshot) =>
-        Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<InvalidSnapshotException>(() =>
             GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings()));
+
+    [Fact]
+    public void Bad_settings_are_reported_as_a_settings_error_not_as_a_bad_save()
+    {
+        var settings = GeneratorSettings.Baseline();
+        settings.MaxWholeTrayAttempts = 150;
+
+        Assert.Throws<ArgumentException>(() =>
+            GameSession.FromSnapshot(SavedGame(), PieceCatalog.Standard, settings, new ScoringSettings()));
+    }
+
+    [Fact]
+    public void A_snapshot_with_an_empty_tray_or_impossible_counters_is_rejected()
+    {
+        var emptyTray = SavedGame();
+        emptyTray.Tray = new[] { "", "", "" };
+        AssertRejected(emptyTray);
+
+        var streakAboveBest = SavedGame();
+        streakAboveBest.Placements = 10;
+        streakAboveBest.Streak = 5;
+        streakAboveBest.MaxStreak = 2;
+        AssertRejected(streakAboveBest);
+
+        var clearsWithoutPlacements = SavedGame();
+        clearsWithoutPlacements.LinesCleared = 3;
+        AssertRejected(clearsWithoutPlacements);
+    }
+
+    [Fact]
+    public void A_snapshot_round_trips_every_field()
+    {
+        var original = new GameSnapshot
+        {
+            Board = TestBoards.Cell(0, 0) | TestBoards.Cell(4, 5),
+            Tray = new[] { "c3a", "", "i2h" },
+            Score = 1234,
+            Streak = 2,
+            MissesSinceClear = 1,
+            MaxStreak = 5,
+            Placements = 40,
+            LinesCleared = 12,
+            RngState = 0x0123456789ABCDEFUL,
+            RngIncrement = 0x0F0F0F0F0F0F0F0FUL,
+            GameIndex = 7,
+            RecentQuickLosses = 1,
+            Revived = true,
+        };
+
+        var resumed = GameSession.FromSnapshot(original, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings()).ToSnapshot();
+
+        Assert.Equal(JsonSerializer.Serialize(original, Json), JsonSerializer.Serialize(resumed, Json));
+    }
 
     [Fact]
     public void A_snapshot_naming_an_unknown_piece_is_rejected()
