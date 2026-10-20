@@ -314,7 +314,7 @@ namespace BlockPuzzle.Core
 **Exit (Gate A):**
 - Most testers start another game without being asked.
 - The simulator numbers are on target.
-- It runs at 60 fps on the low-end Android phone.
+- It runs at 60 fps on the low-end Android phone. Measuring it doesn't hold up Phase 2: without a phone at hand, it's checked in 4.2 at the latest.
 
 If people don't replay, fix the feel and the piece generator before adding art.
 
@@ -512,11 +512,13 @@ If people don't replay, fix the feel and the piece generator before adding art.
 
 - [ ] **4.1 Test on several phones:** a low-end Android, a mid-range Android, a small iPhone, a large iPhone and an iPad. Check:
   - interruptions: calls, switching apps, locking the screen
+  - the system killing the app mid-game: it comes back in the same position, with the same score
   - airplane mode: the game works, no ads
   - a slow network: ads time out without blocking anything
   - low memory, large font sizes and notches
 - [ ] **4.2 Performance and stability targets:**
   - 60 fps, and playable within 3 s of a cold start
+  - the prototype's phone checks, moved here from 1.8 so they don't hold up Phase 2 (the [Task 1.8 plan](2026-10-20-task-1.8-unity-prototype.md)'s Results list them): "determinism OK" on IL2CPP ARM64, 0 B GC Alloc while dragging, and the `TraySolver` benchmark, pruned if a deal takes over 4 ms
   - at least 99.5% of users crash-free, measured in Crashlytics
   - below Google Play's warning levels: user-perceived crash rate under 1.09%, ANR rate (app not responding) under 0.47%
 - [ ] **4.3 Store listings in English, Brazilian Portuguese, Spanish and Indonesian:**

@@ -2,22 +2,24 @@
 using System;
 using BlockPuzzle.Core;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
-using UnityEngine.UI;
 
 namespace BlockPuzzle.Game
 {
     /// <summary>
-    /// The composition root: builds every view in code, resumes the saved game or starts a new one, saves after every
-    /// placement, and shows game over with Play again. Everything it creates is a child of its own object.
+    /// The game screen: builds every view in code, resumes the saved game or starts a new one, saves after every
+    /// placement, pauses, and shows game over with Play again and Home. It asks for Home through HomeRequested and never
+    /// navigates itself. Everything it creates is a child of its own object.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
         SaveStore? _store;
         SaveData _save = new SaveData();
         GameSession? _game;
+        PointerInput? _input;
         bool _booted;
+
+        /// <summary>Raised by Home on the pause overlay and on game over.</summary>
+        public event Action? HomeRequested;
 
         public GameSession Game => _game ?? throw new InvalidOperationException("Call Boot first.");
         public BoardLayout Layout { get; private set; }
@@ -25,41 +27,64 @@ namespace BlockPuzzle.Game
         public TrayView Tray { get; private set; } = null!;
         public DragController Drag { get; private set; } = null!;
         public HudView Hud { get; private set; } = null!;
+        public PauseView Pause { get; private set; } = null!;
         public GameOverView GameOver { get; private set; } = null!;
+        public bool IsPaused { get; private set; }
+
+        /// <summary>The band at the top of the safe area, in world units, kept free for the banner ad.</summary>
+        public float BannerHeight { get; private set; }
 
         void Start()
         {
             if (!_booted) Boot(SaveStore.DefaultPath);
         }
 
-        /// <summary>Builds the game against a save file. Start calls it with the default path unless something called it first.</summary>
+        void OnDisable()
+        {
+            // Hidden mid-drag (Home, or another screen): the piece goes back and nothing is placed.
+            if (_booted && Drag != null) Drag.Cancel();
+        }
+
+        /// <summary>Builds the game against its own save file. Start calls it with the default path unless something called Boot first.</summary>
         public void Boot(string savePath)
+        {
+            if (_booted) return;
+            var store = new SaveStore(savePath);
+            Boot(store, store.TryRead(out var saved) ? saved : new SaveData());
+        }
+
+        /// <summary>Builds the game against a store and the data read from it. App calls this, so both share one SaveData.</summary>
+        public void Boot(SaveStore store, SaveData save)
         {
             if (_booted) return;
             var camera = Camera.main;
             if (camera == null) throw new InvalidOperationException("GameController needs a camera tagged MainCamera.");
             _booted = true;
             Application.targetFrameRate = 60;
-            _store = new SaveStore(savePath);
+            _store = store;
+            _save = save;
 
-            Layout = new BoardLayout(SafeWorldRect(camera));
+            BannerHeight = BannerWorldHeight(camera);
+            Layout = new BoardLayout(SafeWorldRect(camera), BannerHeight);
             Board = Child<BoardView>("Board");
             Board.Build(Layout);
             Tray = Child<TrayView>("Tray");
             Tray.Build(Layout);
 
-            var canvas = CreateCanvas();
-            Hud = HudView.Create(canvas);
-            GameOver = GameOverView.Create(canvas, PlayAgain);
+            // The HUD sits exactly over the score band the layout reserves, which is already inside the safe area.
+            var canvas = UiFactory.Canvas(transform, "Canvas");
+            Hud = HudView.Create(canvas, ScreenFraction(camera, Layout.BoardTopLeft.y), ScreenFraction(camera, Layout.ScoreBandTop), TogglePause);
+            DebugOverlay.CreateIfDevelopment(SafeAreaPanel.Create(canvas));   // development builds only
+            Pause = PauseView.Create(canvas, TogglePause, RequestHome);
+            GameOver = GameOverView.Create(canvas, PlayAgain, RequestHome);
             GameOver.Hide();
-            DebugOverlay.CreateIfDevelopment(canvas);   // development builds only
-            EnsureEventSystem();
+            UiFactory.EnsureEventSystem(transform);   // App already has one; a GameController on its own needs its own
 
             Drag = gameObject.AddComponent<DragController>();
             Drag.Init(Layout, Board, Tray, () => Game, OnPlaced);
-            gameObject.AddComponent<PointerInput>().Init(camera, Drag);
+            _input = gameObject.AddComponent<PointerInput>();
+            _input.Init(camera, Drag);
 
-            if (_store.TryRead(out var saved)) _save = saved;
             // A damaged save can hold impossible counters; the GameSession constructor would refuse them on every launch.
             _save.NextGameIndex = Math.Max(0, _save.NextGameIndex);
             _save.NextRecentQuickLosses = Math.Max(0, _save.NextRecentQuickLosses);
@@ -82,12 +107,50 @@ namespace BlockPuzzle.Game
             StartNextGame();
         }
 
+        /// <summary>The pause button and the back button: pauses or resumes. Ignored on game over.</summary>
+        public void TogglePause()
+        {
+            if (!_booted) return;
+            if (IsPaused) Unpause();
+            else if (!GameOver.IsShown) PauseGame();
+        }
+
+        void PauseGame()
+        {
+            Drag.Cancel();   // the pause button pressed with another finger mid-drag
+            IsPaused = true;
+            if (_input != null) _input.enabled = false;   // the board stays visible behind the overlay, but takes no input
+            Pause.Show();
+        }
+
+        void Unpause()
+        {
+            IsPaused = false;
+            if (_input != null) _input.enabled = true;
+            Pause.Hide();
+        }
+
+        /// <summary>Home on the pause overlay or on game over. The game comes back unpaused.</summary>
+        void RequestHome()
+        {
+            if (IsPaused) Unpause();
+            HomeRequested?.Invoke();
+        }
+
         void StartNextGame()
         {
             _game = new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
                 _save.NextGameIndex, _save.NextRecentQuickLosses);
             RenderAll();
             SaveGameInProgress();
+        }
+
+        /// <summary>Whether a save holds a game that resumes and isn't over: what Home offers as Continue.</summary>
+        public static bool CanResume(SaveData save)
+        {
+            if (!save.HasGame) return false;
+            var game = Resume(save.Game);
+            return game != null && !game.IsGameOver;
         }
 
         static GameSession? Resume(GameSnapshot snapshot)
@@ -157,27 +220,18 @@ namespace BlockPuzzle.Game
             return child.AddComponent<T>();
         }
 
-        Transform CreateCanvas()
+        /// <summary>The banner slot in world units: BannerSlot's pixels as a share of the screen height. Nothing without a screen.</summary>
+        static float BannerWorldHeight(Camera camera)
         {
-            var go = new GameObject("Canvas", typeof(RectTransform));
-            go.transform.SetParent(transform, false);
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 0.5f;
-            go.AddComponent<GraphicRaycaster>();
-            return go.transform;
+            if (Screen.width <= 0 || Screen.height <= 0) return 0f;
+            return BannerSlot.HeightPixels(Screen.dpi, Screen.width) / Screen.height * camera.orthographicSize * 2;
         }
 
-        void EnsureEventSystem()
+        /// <summary>A world y as a fraction of the screen height, from the bottom. The camera's view is the whole screen.</summary>
+        static float ScreenFraction(Camera camera, float worldY)
         {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
-            var go = new GameObject("EventSystem");
-            go.transform.SetParent(transform, false);
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
+            float viewBottom = camera.transform.position.y - camera.orthographicSize;
+            return (worldY - viewBottom) / (camera.orthographicSize * 2);
         }
 
         /// <summary>The safe area in world units: the camera's view, minus notches. Falls back to 9:16 when there is no screen.</summary>

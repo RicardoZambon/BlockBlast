@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.TestTools.Constraints;
+using static BlockPuzzle.Game.Tests.TestDrags;
 using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace BlockPuzzle.Game.Tests
@@ -50,43 +51,8 @@ namespace BlockPuzzle.Game.Tests
             return _controller;
         }
 
-        /// <summary>Saves a game in progress in the given position, so the next Boot resumes it instead of dealing at random.</summary>
-        void SavePosition(GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0)
-        {
-            var snapshot = position.ToSnapshot();
-            snapshot.GameIndex = gameIndex;
-            snapshot.RecentQuickLosses = recentQuickLosses;
-            new SaveStore(SavePath).Write(new SaveData { HasGame = true, Game = snapshot, NextGameIndex = nextGameIndex });
-        }
-
-        // From GameSessionTests.A_placement_can_end_the_game: placing "i2h" at (0, 1) leaves no room for the two 3x3 squares.
-        static readonly Board OneMoveFromGameOver = Board.Parse(
-            "#...#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#");
-
-        /// <summary>The pointer position whose dragged piece has its top-left corner exactly on (row, col).</summary>
-        static Vector2 PointerFor(BoardLayout layout, PieceShape shape, int row, int col)
-        {
-            float cell = layout.CellSize;
-            Vector2 topLeft = layout.BoardTopLeft + new Vector2(col * cell, -row * cell);
-            return topLeft + new Vector2(shape.Width / 2f * cell, -(BoardLayout.LiftCells + shape.Height) * cell);
-        }
-
-        static IEnumerator DragAndRelease(GameController game, int slot, Vector2 to)
-        {
-            Assert.IsTrue(game.Drag.Press(game.Layout.TraySlotCenter(slot)));
-            yield return null;
-            game.Drag.Drag(to);
-            yield return null;
-            game.Drag.Release(to);
-            yield return null;
-        }
+        void SavePosition(GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0) =>
+            TestGames.Save(SavePath, position, gameIndex, recentQuickLosses, nextGameIndex);
 
         static IEnumerator WaitForReturn()
         {
@@ -254,7 +220,7 @@ namespace BlockPuzzle.Game.Tests
         public IEnumerator Game_over_shows_the_panel_and_play_again_starts_the_next_game()
         {
             // The saved NextGameIndex (9) is stale on purpose: the next game must follow the finished game's own index (4).
-            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"), gameIndex: 4, recentQuickLosses: 1, nextGameIndex: 9);
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"), gameIndex: 4, recentQuickLosses: 1, nextGameIndex: 9);
 
             var game = Boot();
             yield return null;
@@ -315,7 +281,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Game_over_shows_its_panel_even_when_saving_fails()
         {
-            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"));
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
             File.SetAttributes(SavePath, FileAttributes.ReadOnly);   // it still loads, but saving over it fails
             var game = Boot();
             yield return null;
@@ -405,6 +371,96 @@ namespace BlockPuzzle.Game.Tests
             Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
             Assert.IsFalse(saved.HasGame);
             Assert.AreEqual(3, saved.NextGameIndex);
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_stops_dragging_and_resume_continues()
+        {
+            var game = Boot();
+            yield return null;
+            var input = game.GetComponent<PointerInput>();
+            Vector2 slot0 = game.Layout.TraySlotCenter(0);
+
+            game.TogglePause();
+            Assert.IsTrue(game.IsPaused);
+            Assert.IsTrue(game.Pause.IsShown);
+            input.Apply(pressedThisFrame: true, held: true, releasedThisFrame: false, cancelled: false, slot0);
+            Assert.IsFalse(game.Drag.IsDragging, "a paused game takes no input");
+
+            game.Pause.PressResume();
+            yield return null;
+            Assert.IsFalse(game.IsPaused);
+            input.Apply(pressedThisFrame: true, held: true, releasedThisFrame: false, cancelled: false, slot0);
+            Assert.IsTrue(game.Drag.IsDragging);
+        }
+
+        [UnityTest]
+        public IEnumerator The_pause_button_mid_drag_sends_the_piece_back()
+        {
+            var game = Boot();
+            yield return null;
+            game.Drag.Press(game.Layout.TraySlotCenter(0));
+            game.Drag.Drag(PointerFor(game.Layout, game.Game.GetTrayPiece(0)!, 0, 0));
+            yield return null;
+
+            game.Hud.PressPause();   // with another finger, while the dragging one is still down
+
+            Assert.IsFalse(game.Drag.IsDragging);
+            game.Pause.PressResume();
+            yield return WaitForReturn();
+            Assert.AreEqual(0, game.Game.Placements);
+            Assert.IsTrue(game.Drag.Press(game.Layout.TraySlotCenter(0)), "after Resume, the next touch starts a fresh drag");
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_home_and_game_over_home_raise_HomeRequested()
+        {
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
+            var game = Boot();
+            yield return null;
+            int homes = 0;
+            game.HomeRequested += () => homes++;
+
+            game.TogglePause();
+            game.Pause.PressHome();
+            Assert.AreEqual(1, homes);
+            Assert.IsFalse(game.IsPaused, "the game comes back unpaused");
+
+            yield return DragAndRelease(game, 0, PointerFor(game.Layout, PieceCatalog.Standard["i2h"], 0, 1));
+            Assert.IsTrue(game.GameOver.IsShown);
+            game.GameOver.PressHome();
+            Assert.AreEqual(2, homes);
+        }
+
+        [UnityTest]
+        public IEnumerator Hiding_the_game_mid_drag_sends_the_piece_back()
+        {
+            var game = Boot();
+            yield return null;
+            game.Drag.Press(game.Layout.TraySlotCenter(0));
+            game.Drag.Drag(PointerFor(game.Layout, game.Game.GetTrayPiece(0)!, 0, 0));
+            yield return null;
+
+            game.gameObject.SetActive(false);
+            yield return null;
+            game.gameObject.SetActive(true);
+            yield return WaitForReturn();
+
+            Assert.IsFalse(game.Drag.IsDragging);
+            Assert.IsFalse(game.Drag.IsReturning);
+            Assert.AreEqual(0, game.Game.Placements);
+        }
+
+        [UnityTest]
+        public IEnumerator The_banner_band_is_kept_clear()
+        {
+            var game = Boot();
+            yield return null;
+            var camera = Camera.main;
+            float viewTop = camera.transform.position.y + camera.orthographicSize;
+
+            Assert.Greater(game.BannerHeight, 0f);
+            Assert.LessOrEqual(game.Layout.ScoreBandTop, viewTop - game.BannerHeight + 1e-4f);
         }
 
         [Test]

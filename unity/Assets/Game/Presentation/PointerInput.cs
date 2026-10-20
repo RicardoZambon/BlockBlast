@@ -33,10 +33,13 @@ namespace BlockPuzzle.Game
             Apply(pointer.press.wasPressedThisFrame, pointer.press.isPressed, pointer.press.wasReleasedThisFrame, cancelled, world);
         }
 
-        /// <summary>One frame of the primary pointer, in world units. A cancelled release sends the piece back instead of dropping it.</summary>
+        /// <summary>
+        /// One frame of the primary pointer, in world units. A cancelled release sends the piece back instead of dropping it.
+        /// Does nothing while the component is turned off, which is how the game pauses input.
+        /// </summary>
         public void Apply(bool pressedThisFrame, bool held, bool releasedThisFrame, bool cancelled, Vector2 world)
         {
-            if (_drag == null) return;
+            if (_drag == null || !enabled) return;
             if (pressedThisFrame) _drag.Press(world);
             else if (held) _drag.Drag(world);
             if (!releasedThisFrame) return;

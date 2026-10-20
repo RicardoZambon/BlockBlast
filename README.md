@@ -1,10 +1,11 @@
 # Block puzzle game
 
-An original 8×8 block puzzle for iOS and Android (working title). This repository holds the plans, the game's rules engine and a rough Unity prototype.
+An original 8×8 block puzzle for iOS and Android (working title). This repository holds the plans, the game's rules engine and the Unity app: Home, the game with pause and game over, and Settings.
 
 - [Master plan](docs/superpowers/plans/2026-10-15-block-puzzle-game.md): every phase from setup to revenue
 - [Phase 1 plan](docs/superpowers/plans/2026-10-20-phase-1-engine-simulator.md): the engine and the simulator, step by step
 - [Task 1.8 plan](docs/superpowers/plans/2026-10-20-task-1.8-unity-prototype.md): the rough Unity prototype, step by step
+- [Phase 2a plan](docs/superpowers/plans/2026-10-20-phase-2a-app-shell.md): the app shell, with its screens and a safe, banner-aware layout
 
 ## Layout
 
@@ -15,7 +16,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 | `core/dotnet/BlockPuzzle.Core.Tests/` | xUnit tests for the engine |
 | `core/dotnet/BlockPuzzle.Sim/` | Simulator: bots play thousands of games to tune the piece generator |
 | `core/dotnet/BlockPuzzle.Sim.Tests/` | xUnit tests for the simulator |
-| `unity/` | The Unity 6.3 LTS prototype (6000.3.26f1, Universal 2D). The game is in `unity/Assets/Game` |
+| `unity/` | The Unity 6.3 LTS app (6000.3.26f1, Universal 2D). The game is in `unity/Assets/Game` |
 | `unity/Assets/Game/Tests/` | Unity EditMode and PlayMode tests |
 
 ## Run
@@ -30,7 +31,7 @@ CI runs the tests and the last command, which exits with code 2 if the greedy bo
 
 ### Unity
 
-Open `unity/` in Unity 6000.3.26f1, open `Assets/Game/Scenes/Game.unity` and press Play. To run the tests from a shell:
+Open `unity/` in Unity 6000.3.26f1, open `Assets/Game/Scenes/Game.unity` and press Play. Besides the camera and a 2D light, the scene holds one object, `App`, which builds Home, the game and Settings in code. To run the tests from a shell:
 - Close the Editor, because it locks the project.
 - Keep Unity Hub running: the Editor gets its license from the Hub's licensing client.
 

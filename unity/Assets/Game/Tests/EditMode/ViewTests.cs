@@ -95,6 +95,95 @@ namespace BlockPuzzle.Game.Tests
             CollectionAssert.AreEqual(expected, actual);
         }
 
+        Transform Canvas()
+        {
+            var go = new GameObject("Canvas", typeof(RectTransform));
+            _created.Add(go);
+            go.AddComponent<Canvas>();
+            return go.transform;
+        }
+
+        [Test]
+        public void The_pause_overlay_calls_resume_and_home()
+        {
+            int resumed = 0, home = 0;
+            var pause = PauseView.Create(Canvas(), () => resumed++, () => home++);
+            Assert.IsFalse(pause.IsShown);
+
+            pause.Show();
+            Assert.IsTrue(pause.IsShown);
+            pause.PressResume();
+            pause.PressHome();
+
+            Assert.AreEqual(1, resumed);
+            Assert.AreEqual(1, home);
+        }
+
+        [Test]
+        public void Game_over_has_home_and_a_hidden_revive_slot()
+        {
+            int home = 0;
+            var gameOver = GameOverView.Create(Canvas(), () => { }, () => home++);
+
+            gameOver.PressHome();
+
+            Assert.AreEqual(1, home);
+            Assert.IsFalse(gameOver.ReviveSlot.gameObject.activeSelf);
+        }
+
+        [Test]
+        public void The_hud_pause_button_calls_pause_and_the_score_shows()
+        {
+            int paused = 0;
+            var hud = HudView.Create(Canvas(), 0.8f, 0.9f, () => paused++);
+
+            hud.PressPause();
+            hud.Show(120, 300);
+
+            Assert.AreEqual(1, paused);
+            Assert.AreEqual("120", hud.ScoreText);
+            var rect = (RectTransform)hud.transform;
+            Assert.AreEqual(0.8f, rect.anchorMin.y, 1e-5f);
+            Assert.AreEqual(0.9f, rect.anchorMax.y, 1e-5f);
+        }
+
+        [Test]
+        public void A_safe_area_panel_follows_a_new_safe_area()
+        {
+            var panel = SafeAreaPanel.Create(Canvas());
+
+            // In the Editor the safe area is the whole screen; on a phone a notch and a gesture bar take their share.
+            panel.GetComponent<SafeAreaPanel>().ApplyIfChanged(new Rect(0, 96, 1080, 2216), new Vector2(1080, 2400));
+
+            Assert.AreEqual(0f, panel.anchorMin.x, 1e-5f);
+            Assert.AreEqual(0.04f, panel.anchorMin.y, 1e-5f);
+            Assert.AreEqual(1f, panel.anchorMax.x, 1e-5f);
+            Assert.AreEqual(0.963333f, panel.anchorMax.y, 1e-5f);
+        }
+
+        static (bool sound, bool music, bool haptics, bool reducedMotion) Values(SettingsData s) =>
+            (s.Sound, s.Music, s.Haptics, s.ReducedMotion);
+
+        [Test]
+        public void Each_settings_toggle_changes_only_its_own_setting_and_reports_it()
+        {
+            var settings = new SettingsData();
+            int changes = 0;
+            var screen = SettingsScreen.Create(Canvas(), settings, () => changes++, () => { });
+            Assert.AreEqual(0, changes, "building the screen changes nothing");
+
+            screen.SetToggle("Sound", false);
+            Assert.AreEqual((false, true, true, false), Values(settings));
+            screen.SetToggle("Music", false);
+            Assert.AreEqual((false, false, true, false), Values(settings));
+            screen.SetToggle("Haptics", false);
+            Assert.AreEqual((false, false, false, false), Values(settings));
+            screen.SetToggle("Reduced motion", true);
+            Assert.AreEqual((false, false, false, true), Values(settings));
+            Assert.AreEqual(4, changes);
+            Assert.IsTrue(screen.IsOn("Reduced motion"));
+        }
+
         [Test]
         public void The_tray_shows_each_piece_and_hides_empty_slots()
         {

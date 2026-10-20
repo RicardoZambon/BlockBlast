@@ -22,18 +22,20 @@ namespace BlockPuzzle.Game
         float _slowestShown;
         float _windowTimer;
 
-        public static DebugOverlay? CreateIfDevelopment(Transform canvas)
+        /// <param name="parent">The safe-area panel, so nothing sits under a notch.</param>
+        public static DebugOverlay? CreateIfDevelopment(Transform parent)
         {
             if (!Debug.isDebugBuild) return null;
 
-            var panel = UiFactory.Rect(canvas, "Debug overlay", new Vector2(0f, 0f), new Vector2(760, 170), new Vector2(400, 110));
+            var panel = UiFactory.Rect(parent, "Debug overlay", new Vector2(0f, 0f), new Vector2(760, 170), new Vector2(400, 110));
             var overlay = panel.gameObject.AddComponent<DebugOverlay>();
             overlay._text = UiFactory.Text(panel, 30, new Color(1f, 0.85f, 0.3f, 1f));
             overlay._text.alignment = TextAnchor.LowerLeft;
             overlay._determinism = EngineChecks.CheckDeterminism();
 
-            // Top right, in the score band: PointerInput reads the pointer directly, so a button over the tray would also pick up a piece.
-            var button = UiFactory.Rect(canvas, "Bench", new Vector2(1f, 1f), new Vector2(220, 100), new Vector2(-140, -70));
+            // Top right, in the banner band, which stays empty until Phase 3: PointerInput reads the pointer directly, so a
+            // button over the tray would also pick up a piece.
+            var button = UiFactory.Rect(parent, "Bench", new Vector2(1f, 1f), new Vector2(220, 100), new Vector2(-140, -70));
             button.gameObject.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.2f);
             button.gameObject.AddComponent<Button>().onClick.AddListener(overlay.RunBenchmark);
             UiFactory.Text(UiFactory.Stretch(button, "Label"), 40, Color.white).text = "Bench";

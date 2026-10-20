@@ -53,7 +53,7 @@ namespace BlockPuzzle.Game.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>Generates the one scene: an orthographic camera, a global 2D light and the GameController, which builds the rest.</summary>
+        /// <summary>Generates the one scene: an orthographic camera, a global 2D light and the App, which builds the rest.</summary>
         [MenuItem("Block Puzzle/Build game scene")]
         public static void BuildScene()
         {
@@ -72,7 +72,7 @@ namespace BlockPuzzle.Game.EditorTools
             light.lightType = Light2D.LightType.Global;
             light.intensity = 1f;
 
-            new GameObject("Game").AddComponent<GameController>();
+            new GameObject("App").AddComponent<App>();
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath)!);
             EditorSceneManager.SaveScene(scene, ScenePath);
