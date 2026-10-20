@@ -3208,9 +3208,9 @@ A fresh review found nothing critical or important. It found two minor gaps, bot
 
 The golden values and the 20,000-game medians (155, 98 and 46) didn't change. There are now 161 tests: 124 for the engine and 37 for the simulator.
 
-Still open for Task 1.8; each needs Unity or a phone:
-- Create the Unity 6.3 LTS project and build the prototype itself (the master plan's 1.8 list).
-- Check that `JsonUtility` saves and loads the 64-bit snapshot fields exactly.
-- Run the golden tests in EditMode.
-- Commit the `.meta` files Unity generates in `core/src`.
-- Measure `TraySolver` on a low-end Android phone, and prune it if needed.
+Still open for Task 1.8 after the engine prep. The [Task 1.8 plan](2026-10-20-task-1.8-unity-prototype.md) did the first four; its Results have the details.
+- Done: create the Unity 6.3 LTS project and build the prototype itself (the master plan's 1.8 list).
+- Done: check that `JsonUtility` saves and loads the 64-bit snapshot fields exactly. It does.
+- Done: run the golden tests in EditMode. They match .NET.
+- Done: commit the `.meta` files Unity generates in `core/src`.
+- Still open, because it needs the phone: measure `TraySolver` on a low-end Android phone, and prune it if needed. The development build's Bench button times it.
