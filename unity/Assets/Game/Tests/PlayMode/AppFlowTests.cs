@@ -324,6 +324,8 @@ namespace BlockPuzzle.Game.Tests
             Assert.AreEqual(Day, saved.Daily.Record.LastDay);
             Assert.AreEqual(3, saved.Daily.Record.Streak);
             Assert.IsFalse(saved.Daily.HasGame);
+            Assert.AreEqual(0, saved.BestScore, "the Daily's score isn't Classic's best");
+            Assert.AreEqual(0, saved.NextGameIndex, "the Daily doesn't count as a Classic game");
         }
 
         [UnityTest]
@@ -336,9 +338,10 @@ namespace BlockPuzzle.Game.Tests
             app.Home.PressDaily();
             Assert.AreEqual(AppScreen.Home, app.Current);
 
-            _now = October20.AddDays(1);
-            app.ShowHome();
+            _now = October20.AddDays(1);   // midnight passes with Home on screen, or the app comes back on a later day
+            yield return null;
             Assert.AreEqual("Daily · 1-day streak", app.Home.DailyLabel);
+            Assert.IsTrue(app.Home.DailyEnabled);
             app.Home.PressDaily();
             yield return null;
 

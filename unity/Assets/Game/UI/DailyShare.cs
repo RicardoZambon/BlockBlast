@@ -25,9 +25,10 @@ namespace BlockPuzzle.Game
 #if UNITY_ANDROID && !UNITY_EDITOR
             using var intentClass = new AndroidJavaClass("android.content.Intent");
             using var intent = new AndroidJavaObject("android.content.Intent");
-            intent.Call<AndroidJavaObject>("setAction", intentClass.GetStatic<string>("ACTION_SEND"));
-            intent.Call<AndroidJavaObject>("setType", "text/plain");
-            intent.Call<AndroidJavaObject>("putExtra", intentClass.GetStatic<string>("EXTRA_TEXT"), text);
+            // Each builder call returns the intent again, as a new wrapper to dispose.
+            intent.Call<AndroidJavaObject>("setAction", intentClass.GetStatic<string>("ACTION_SEND")).Dispose();
+            intent.Call<AndroidJavaObject>("setType", "text/plain").Dispose();
+            intent.Call<AndroidJavaObject>("putExtra", intentClass.GetStatic<string>("EXTRA_TEXT"), text).Dispose();
             using var chooser = intentClass.CallStatic<AndroidJavaObject>("createChooser", intent, "Share");
             using var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
             using var activity = player.GetStatic<AndroidJavaObject>("currentActivity");

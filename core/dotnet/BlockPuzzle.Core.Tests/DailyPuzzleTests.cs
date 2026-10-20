@@ -12,9 +12,13 @@ public class DailyPuzzleTests
         Assert.Equal(October20, DailyPuzzle.DayNumber(new DateTime(2026, 10, 20, 23, 59, 59, DateTimeKind.Utc)));
         Assert.Equal(October20 + 1, DailyPuzzle.DayNumber(new DateTime(2026, 10, 21, 0, 0, 0, DateTimeKind.Utc)));
 
-        var utc = new DateTime(2026, 10, 20, 23, 30, 0, DateTimeKind.Utc);
-        Assert.Equal(October20, DailyPuzzle.DayNumber(utc.ToLocalTime()));
-        Assert.Equal(October20, DailyPuzzle.DayNumber(DateTime.SpecifyKind(utc, DateTimeKind.Unspecified)));
+        // Just after and just before midnight UTC, so in any zone but UTC one of the two local times is on another date.
+        foreach (int hour in new[] { 0, 23 })
+        {
+            var utc = new DateTime(2026, 10, 20, hour, 30, 0, DateTimeKind.Utc);
+            Assert.Equal(October20, DailyPuzzle.DayNumber(utc.ToLocalTime()));
+            Assert.Equal(October20, DailyPuzzle.DayNumber(DateTime.SpecifyKind(utc, DateTimeKind.Unspecified)));
+        }
     }
 
     [Fact]

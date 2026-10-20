@@ -29,6 +29,7 @@ namespace BlockPuzzle.Game
         SettingsData _settings = new SettingsData();
         Func<DateTime> _utcNow = () => DateTime.UtcNow;
         Action<string>? _share;
+        int _homeDay;
         bool _booted;
 
         public HomeScreen Home { get; private set; } = null!;
@@ -49,6 +50,9 @@ namespace BlockPuzzle.Game
             // The Android back button arrives as Escape.
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) Back();
+
+            // Home's Daily button changes at midnight UTC, including when the app comes back on a later day.
+            if (_booted && Current == AppScreen.Home && Today != _homeDay) ShowHome();
         }
 
         /// <summary>
@@ -77,6 +81,7 @@ namespace BlockPuzzle.Game
         {
             CloseDaily();
             int today = Today;
+            _homeDay = today;
             // Once the Classic screen exists it keeps the shared SaveData current after every move. Before that, only a
             // save that resumes into a game that isn't over is worth a Continue.
             bool classicInProgress = Game != null ? _save.HasGame : ClassicMode.CanContinue(_save);
