@@ -35,7 +35,7 @@ foreach (string profile in options.Profiles)
 }
 
 Console.WriteLine();
-Console.WriteLine("Columns are placements per game except: <20 = games ending before placement 20, lines = lines per game,");
+Console.WriteLine($"Columns are placements per game except: <{Report.EarlyEndPlacements} = games ending before placement {Report.EarlyEndPlacements}, lines = lines per game,");
 Console.WriteLine("score = median score, streak90 = 90th-percentile best streak, mercy = mercy games, capped = games stopped at the cap.");
 Console.WriteLine($"Target for {TargetCheck.Profile} + {TargetCheck.Bot}: {TargetCheck.Description}.");
 

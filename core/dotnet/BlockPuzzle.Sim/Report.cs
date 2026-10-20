@@ -7,7 +7,7 @@ public static class Report
     public const int EarlyEndPlacements = 20;
 
     public static string Header =>
-        $"{"profile",-10}{"bot",-8}{"games",8}{"median",8}{"p10",6}{"p90",7}{"mean",8}{"<20",8}{"lines",8}{"score",9}{"streak90",10}{"mercy",8}{"capped",8}{"secs",7}";
+        $"{"profile",-10}{"bot",-8}{"games",8}{"median",8}{"p10",6}{"p90",7}{"mean",8}{"<" + EarlyEndPlacements,8}{"lines",8}{"score",9}{"streak90",10}{"mercy",8}{"capped",8}{"secs",7}";
 
     public static string Row(string profile, string bot, GameResult[] results, TimeSpan elapsed)
     {
