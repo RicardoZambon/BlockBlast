@@ -95,6 +95,68 @@ namespace BlockPuzzle.Game.Tests
             CollectionAssert.AreEqual(expected, actual);
         }
 
+        Transform Canvas()
+        {
+            var go = new GameObject("Canvas", typeof(RectTransform));
+            _created.Add(go);
+            go.AddComponent<Canvas>();
+            return go.transform;
+        }
+
+        [Test]
+        public void The_pause_overlay_calls_resume_and_home()
+        {
+            int resumed = 0, home = 0;
+            var pause = PauseView.Create(Canvas(), () => resumed++, () => home++);
+            Assert.IsFalse(pause.IsShown);
+
+            pause.Show();
+            Assert.IsTrue(pause.IsShown);
+            pause.PressResume();
+            pause.PressHome();
+
+            Assert.AreEqual(1, resumed);
+            Assert.AreEqual(1, home);
+        }
+
+        [Test]
+        public void Game_over_has_home_and_a_hidden_revive_slot()
+        {
+            int home = 0;
+            var gameOver = GameOverView.Create(Canvas(), () => { }, () => home++);
+
+            gameOver.PressHome();
+
+            Assert.AreEqual(1, home);
+            Assert.IsFalse(gameOver.ReviveSlot.gameObject.activeSelf);
+        }
+
+        [Test]
+        public void The_hud_pause_button_calls_pause_and_the_score_shows()
+        {
+            int paused = 0;
+            var hud = HudView.Create(Canvas(), 0.8f, 0.9f, () => paused++);
+
+            hud.PressPause();
+            hud.Show(120, 300);
+
+            Assert.AreEqual(1, paused);
+            Assert.AreEqual("120", hud.ScoreText);
+            var rect = (RectTransform)hud.transform;
+            Assert.AreEqual(0.8f, rect.anchorMin.y, 1e-5f);
+            Assert.AreEqual(0.9f, rect.anchorMax.y, 1e-5f);
+        }
+
+        [Test]
+        public void A_safe_area_panel_matches_the_safe_area_anchors()
+        {
+            var panel = SafeAreaPanel.Create(Canvas());
+
+            SafeArea.Anchors(Screen.safeArea, new Vector2(Screen.width, Screen.height), out var min, out var max);
+            Assert.AreEqual(min, panel.anchorMin);
+            Assert.AreEqual(max, panel.anchorMax);
+        }
+
         [Test]
         public void The_tray_shows_each_piece_and_hides_empty_slots()
         {

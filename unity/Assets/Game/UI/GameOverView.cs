@@ -5,30 +5,34 @@ using UnityEngine.UI;
 
 namespace BlockPuzzle.Game
 {
-    /// <summary>The game-over panel: the final score, the best, and Play again.</summary>
+    /// <summary>The game-over panel: the final score, the best, a slot for the revive offer (Phase 3), Play again and Home.</summary>
     public sealed class GameOverView : MonoBehaviour
     {
         Text? _scores;
         Action? _playAgain;
+        Action? _home;
 
-        public static GameOverView Create(Transform canvas, Action playAgain)
+        public static GameOverView Create(Transform canvas, Action playAgain, Action home)
         {
-            var root = UiFactory.Stretch(canvas, "Game over");
-            var dim = root.gameObject.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.75f);   // drags are already refused here: the game is over
-
+            var root = UiFactory.Dim(canvas, "Game over");   // drags are already refused here: the game is over
             var view = root.gameObject.AddComponent<GameOverView>();
             view._playAgain = playAgain;
+            view._home = home;
             var centre = new Vector2(0.5f, 0.5f);
-            UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 360)), 110, Color.white).text = "Game over";
-            view._scores = UiFactory.Text(UiFactory.Rect(root, "Scores", centre, new Vector2(900, 220), new Vector2(0, 120)), 64, Color.white);
+            UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 460)), 110, Color.white).text = "Game over";
+            view._scores = UiFactory.Text(UiFactory.Rect(root, "Scores", centre, new Vector2(900, 220), new Vector2(0, 240)), 64, Color.white);
 
-            var buttonRect = UiFactory.Rect(root, "Play again", centre, new Vector2(600, 170), new Vector2(0, -200));
-            buttonRect.gameObject.AddComponent<Image>().color = Palette.Filled;
-            buttonRect.gameObject.AddComponent<Button>().onClick.AddListener(view.PressPlayAgain);
-            UiFactory.Text(UiFactory.Stretch(buttonRect, "Label"), 64, Color.white).text = "Play again";
+            // Reserved now, so adding the rewarded revive in Phase 3 doesn't move the buttons.
+            view.ReviveSlot = UiFactory.Rect(root, "Revive slot", centre, new Vector2(700, 180), new Vector2(0, 30));
+            view.ReviveSlot.gameObject.SetActive(false);
+
+            UiFactory.Button(root, "Play again", "Play again", centre, new Vector2(600, 170), new Vector2(0, -180), view.PressPlayAgain);
+            UiFactory.Button(root, "Home", "Home", centre, new Vector2(600, 170), new Vector2(0, -380), view.PressHome);
             return view;
         }
+
+        /// <summary>Where the revive offer goes; inactive until Phase 3 adds rewarded ads.</summary>
+        public RectTransform ReviveSlot { get; private set; } = null!;
 
         public bool IsShown => gameObject.activeSelf;
 
@@ -42,5 +46,8 @@ namespace BlockPuzzle.Game
 
         /// <summary>What the Play again button does; tests call it directly.</summary>
         public void PressPlayAgain() => _playAgain?.Invoke();
+
+        /// <summary>What the Home button does; tests call it directly.</summary>
+        public void PressHome() => _home?.Invoke();
     }
 }

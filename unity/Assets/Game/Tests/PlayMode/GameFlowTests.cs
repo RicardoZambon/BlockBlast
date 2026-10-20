@@ -407,6 +407,78 @@ namespace BlockPuzzle.Game.Tests
             Assert.AreEqual(3, saved.NextGameIndex);
         }
 
+        [UnityTest]
+        public IEnumerator Pause_stops_dragging_and_resume_continues()
+        {
+            var game = Boot();
+            yield return null;
+            var input = game.GetComponent<PointerInput>();
+            Vector2 slot0 = game.Layout.TraySlotCenter(0);
+
+            game.TogglePause();
+            Assert.IsTrue(game.IsPaused);
+            Assert.IsTrue(game.Pause.IsShown);
+            input.Apply(pressedThisFrame: true, held: true, releasedThisFrame: false, cancelled: false, slot0);
+            Assert.IsFalse(game.Drag.IsDragging, "a paused game takes no input");
+
+            game.Pause.PressResume();
+            yield return null;
+            Assert.IsFalse(game.IsPaused);
+            input.Apply(pressedThisFrame: true, held: true, releasedThisFrame: false, cancelled: false, slot0);
+            Assert.IsTrue(game.Drag.IsDragging);
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_home_and_game_over_home_raise_HomeRequested()
+        {
+            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"));
+            var game = Boot();
+            yield return null;
+            int homes = 0;
+            game.HomeRequested += () => homes++;
+
+            game.TogglePause();
+            game.Pause.PressHome();
+            Assert.AreEqual(1, homes);
+            Assert.IsFalse(game.IsPaused, "the game comes back unpaused");
+
+            yield return DragAndRelease(game, 0, PointerFor(game.Layout, PieceCatalog.Standard["i2h"], 0, 1));
+            Assert.IsTrue(game.GameOver.IsShown);
+            game.GameOver.PressHome();
+            Assert.AreEqual(2, homes);
+        }
+
+        [UnityTest]
+        public IEnumerator Hiding_the_game_mid_drag_sends_the_piece_back()
+        {
+            var game = Boot();
+            yield return null;
+            game.Drag.Press(game.Layout.TraySlotCenter(0));
+            game.Drag.Drag(PointerFor(game.Layout, game.Game.GetTrayPiece(0)!, 0, 0));
+            yield return null;
+
+            game.gameObject.SetActive(false);
+            yield return null;
+            game.gameObject.SetActive(true);
+            yield return WaitForReturn();
+
+            Assert.IsFalse(game.Drag.IsDragging);
+            Assert.IsFalse(game.Drag.IsReturning);
+            Assert.AreEqual(0, game.Game.Placements);
+        }
+
+        [UnityTest]
+        public IEnumerator The_banner_band_is_kept_clear()
+        {
+            var game = Boot();
+            yield return null;
+            var camera = Camera.main;
+            float viewTop = camera.transform.position.y + camera.orthographicSize;
+
+            Assert.Greater(game.BannerHeight, 0f);
+            Assert.LessOrEqual(game.Layout.ScoreBandTop, viewTop - game.BannerHeight + 1e-4f);
+        }
+
         [Test]
         public void Booting_without_a_main_camera_fails_clearly()
         {
