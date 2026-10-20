@@ -63,22 +63,21 @@ public class PieceGeneratorTests
     }
 
     [Fact]
-    public void Whole_tray_deals_can_be_placed()
+    public void Whole_tray_deals_can_be_placed_where_random_trays_often_cannot()
     {
-        var generator = Create(GeneratorSettings.Gentle());
-        var board = Board.Parse(
-            "####....",
-            "####....",
-            "####....",
-            "####....",
-            "........",
-            "........",
-            "........",
-            "........");
+        var unguarded = GeneratorSettings.Gentle();
+        unguarded.FitGuarantee = FitGuarantee.None;
+        var random = Create(unguarded);
+        var gentle = Create(GeneratorSettings.Gentle());
 
+        // Without the guarantee this board regularly gets trays that can't all be placed...
+        var randomTrays = Enumerable.Range(0, 200).Select(_ => random.Deal(TestBoards.Crossroads, 10, false)).ToArray();
+        Assert.Contains(randomTrays, tray => !TraySolver.CanPlaceAll(TestBoards.Crossroads, tray));
+
+        // ...and with it, every one of these deals fits.
         for (int i = 0; i < 200; i++)
         {
-            Assert.True(TraySolver.CanPlaceAll(board, generator.Deal(board, placements: 10, mercyGame: false)));
+            Assert.True(TraySolver.CanPlaceAll(TestBoards.Crossroads, gentle.Deal(TestBoards.Crossroads, placements: 10, mercyGame: false)));
         }
     }
 

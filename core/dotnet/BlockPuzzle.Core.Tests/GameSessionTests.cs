@@ -304,6 +304,29 @@ public class GameSessionTests
     }
 
     [Fact]
+    public void A_revive_is_refused_while_the_game_is_still_running()
+    {
+        var game = NewGame();
+        string before = TrayIds(game);
+
+        Assert.False(game.TryRevive());
+        Assert.False(game.Revived);
+        Assert.Equal(before, TrayIds(game));
+    }
+
+    [Fact]
+    public void A_mercy_game_deals_from_the_mercy_weights()
+    {
+        for (ulong seed = 1; seed <= 20; seed++)
+        {
+            var expected = new PieceGenerator(PieceCatalog.Standard, GeneratorSettings.Baseline(), new Pcg32(seed))
+                .Deal(Board.Empty, placements: 0, mercyGame: true);
+
+            Assert.Equal(string.Join(",", expected.Select(p => p.Id)), TrayIds(NewGame(seed, recentQuickLosses: 2)));
+        }
+    }
+
+    [Fact]
     public void A_second_revive_is_refused()
     {
         var game = Position(TestBoards.Checkerboard, new[] { "i2h", "o3", "o3" }, revived: true);
