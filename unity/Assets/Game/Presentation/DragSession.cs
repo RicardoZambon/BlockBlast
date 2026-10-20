@@ -24,6 +24,16 @@ namespace BlockPuzzle.Game
         /// <summary>The cells that would clear; 0 without a target.</summary>
         public ulong ClearMask { get; private set; }
 
+        int _guideRow = -1;
+        int _guideCol = -1;
+
+        /// <summary>Lets pieces land only with their top-left on (row, col), as in the tutorial; (-1, -1) lets them land anywhere.</summary>
+        public void SetGuide(int row, int col)
+        {
+            _guideRow = row;
+            _guideCol = col;
+        }
+
         /// <summary>Starts dragging a slot's piece. False while another drag runs, for an empty or missing slot, or after game over.</summary>
         public bool TryBegin(GameSession game, int slot)
         {
@@ -38,7 +48,7 @@ namespace BlockPuzzle.Game
         {
             if (!IsDragging) return;
             var shape = game.GetTrayPiece(Slot);
-            if (shape != null && SnapFinder.TryFind(game, Slot, topLeftRow, topLeftCol, out int row, out int col) &&
+            if (shape != null && SnapFinder.TryFind(game, Slot, topLeftRow, topLeftCol, out int row, out int col, _guideRow, _guideCol) &&
                 shape.TryGetMask(row, col, out ulong mask))
             {
                 HasTarget = true;

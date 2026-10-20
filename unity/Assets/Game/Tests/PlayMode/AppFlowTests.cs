@@ -59,6 +59,16 @@ namespace BlockPuzzle.Game.Tests
             return _app;
         }
 
+        /// <summary>A new player who already did the tutorial, so Play goes straight to Classic.</summary>
+        void MarkTutorialDone() => new SaveStore(SavePath).Write(new SaveData { TutorialDone = true });
+
+        static IEnumerator PlayGuidedMove(GameController tutorial)
+        {
+            var guide = tutorial.CurrentGuide!.Value;
+            var shape = tutorial.Game.GetTrayPiece(guide.Slot)!;
+            yield return DragAndRelease(tutorial, guide.Slot, PointerFor(tutorial.Layout, shape, guide.Row, guide.Col));
+        }
+
         void SaveDaily(DailyRecord record, GameSession? attempt = null, int attemptDay = Day)
         {
             var save = new SaveData();
@@ -88,6 +98,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Play_starts_a_game_and_continue_resumes_it_after_home()
         {
+            MarkTutorialDone();
             var app = Boot();
             yield return null;
             app.Home.PressPlay();
@@ -249,6 +260,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Back_goes_from_settings_to_home_and_pauses_a_game()
         {
+            MarkTutorialDone();
             var app = Boot();
             yield return null;
             app.ShowSettings();
@@ -265,6 +277,106 @@ namespace BlockPuzzle.Game.Tests
             app.Back();
             Assert.IsFalse(game.IsPaused);
             Assert.AreEqual(AppScreen.Game, app.Current);
+        }
+
+        [UnityTest]
+        public IEnumerator The_first_play_runs_the_tutorial_then_classic()
+        {
+            var app = Boot();
+            yield return null;
+            app.Home.PressPlay();
+            yield return null;
+            Assert.AreEqual(AppScreen.Tutorial, app.Current);
+            var tutorial = app.Tutorial!;
+            Assert.AreEqual("Drag the piece onto the board", tutorial.Hint!.Text);
+            Assert.IsTrue(tutorial.Hand!.IsShown);
+
+            yield return PlayGuidedMove(tutorial);
+            Assert.AreEqual("Fill a row to clear it", tutorial.Hint.Text);
+            yield return PlayGuidedMove(tutorial);
+            Assert.AreEqual("Columns clear too", tutorial.Hint.Text);
+            yield return PlayGuidedMove(tutorial);
+            yield return null;
+
+            Assert.AreEqual(AppScreen.Game, app.Current, "Classic starts as soon as the tutorial ends");
+            Assert.IsNull(app.Tutorial);
+            Assert.AreEqual(0, app.Game!.Game.Placements);
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.IsTrue(saved.TutorialDone);
+        }
+
+        [UnityTest]
+        public IEnumerator A_drop_off_the_guide_is_refused()
+        {
+            var app = Boot();
+            yield return null;
+            app.Home.PressPlay();
+            yield return null;
+            var tutorial = app.Tutorial!;
+            var shape = tutorial.Game.GetTrayPiece(1)!;
+            var board = tutorial.Game.Board;
+
+            yield return DragAndRelease(tutorial, 1, PointerFor(tutorial.Layout, shape, 5, 0));   // free, but not the guided spot
+            yield return new WaitForSeconds(DragController.ReturnSeconds + 0.05f);
+
+            // An accepted drop would move on to step 2: a new game on a new board, with a bar in the tray.
+            Assert.AreEqual(board, tutorial.Game.Board);
+            Assert.AreEqual("o2", tutorial.Game.GetTrayPiece(1)!.Id);
+            Assert.AreEqual("Drag the piece onto the board", tutorial.Hint!.Text);
+        }
+
+        [UnityTest]
+        public IEnumerator Skip_goes_straight_to_classic()
+        {
+            var app = Boot();
+            yield return null;
+            app.Home.PressPlay();
+            yield return null;
+
+            app.Tutorial!.Hint!.PressSkip();
+            yield return null;
+
+            Assert.AreEqual(AppScreen.Game, app.Current);
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.IsTrue(saved.TutorialDone);
+        }
+
+        [UnityTest]
+        public IEnumerator A_returning_player_skips_the_tutorial()
+        {
+            new SaveStore(SavePath).Write(new SaveData { BestScore = 120, NextGameIndex = 4 });   // played before the tutorial existed
+            var app = Boot();
+            yield return null;
+
+            app.Home.PressPlay();
+            yield return null;
+
+            Assert.AreEqual(AppScreen.Game, app.Current);
+            Assert.IsNull(app.Tutorial);
+        }
+
+        [UnityTest]
+        public IEnumerator Home_mid_tutorial_starts_it_over_next_time()
+        {
+            var app = Boot();
+            yield return null;
+            app.Home.PressPlay();
+            yield return null;
+            var tutorial = app.Tutorial!;
+            yield return PlayGuidedMove(tutorial);
+            Assert.AreEqual("Fill a row to clear it", tutorial.Hint!.Text);
+
+            app.Back();   // the back button pauses the tutorial like any game
+            Assert.IsTrue(tutorial.IsPaused);
+            tutorial.Pause.PressHome();
+            yield return null;
+            Assert.AreEqual(AppScreen.Home, app.Current);
+            Assert.AreEqual("Play", app.Home.PlayLabel);
+
+            app.Home.PressPlay();
+            yield return null;
+            Assert.AreEqual(AppScreen.Tutorial, app.Current);
+            Assert.AreEqual("Drag the piece onto the board", app.Tutorial!.Hint!.Text);
         }
 
         [UnityTest]
@@ -384,6 +496,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Classic_and_daily_keep_separate_games()
         {
+            MarkTutorialDone();
             var app = Boot();
             yield return null;
             app.Home.PressPlay();

@@ -25,6 +25,9 @@ namespace BlockPuzzle.Game
 
         public int BestScore;
 
+        /// <summary>Whether the first-time tutorial was finished or skipped.</summary>
+        public bool TutorialDone;
+
         /// <summary>The Daily Puzzle, kept apart from Classic: a save from before the Daily loads with an empty one.</summary>
         public DailySave Daily = new DailySave();
     }

@@ -37,6 +37,20 @@ namespace BlockPuzzle.Game
         /// <summary>What Share posts for a finished game.</summary>
         public virtual string ShareText(GameSession finished) => "";
 
+        /// <summary>The move the player is guided to make next, as in the tutorial; null for free play.</summary>
+        public virtual Guide? CurrentGuide => null;
+
+        /// <summary>After a guided move: the next step's game, or null once the guided part is over and IsComplete.</summary>
+        public virtual GameSession? NextStep(GameSession game) => null;
+
+        /// <summary>Whether a guided mode has run out of steps, or was skipped.</summary>
+        public virtual bool IsComplete => false;
+
+        /// <summary>Ends a guided mode early.</summary>
+        public virtual void Skip()
+        {
+        }
+
         protected static GameSession? ResumeSnapshot(GameSnapshot snapshot)
         {
             try
@@ -47,6 +61,23 @@ namespace BlockPuzzle.Game
             {
                 return null;   // a save we can't resume: start a new game, keeping the counters
             }
+        }
+    }
+
+    /// <summary>A guided move: the piece in Slot may only land with its top-left on (Row, Col), and Hint says why.</summary>
+    public readonly struct Guide
+    {
+        public readonly int Slot;
+        public readonly int Row;
+        public readonly int Col;
+        public readonly string Hint;
+
+        public Guide(int slot, int row, int col, string hint)
+        {
+            Slot = slot;
+            Row = row;
+            Col = col;
+            Hint = hint;
         }
     }
 

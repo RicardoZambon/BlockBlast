@@ -45,6 +45,9 @@ namespace BlockPuzzle.Game
             _placed = placed;
         }
 
+        /// <summary>Lets pieces land only with their top-left on (row, col); (-1, -1) lets them land anywhere.</summary>
+        public void SetGuide(int row, int col) => _session.SetGuide(row, col);
+
         /// <summary>Starts a drag when the point is over a tray piece. Ignored while a piece is dragged or returning.</summary>
         public bool Press(Vector2 world)
         {

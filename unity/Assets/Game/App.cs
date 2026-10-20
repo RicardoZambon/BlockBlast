@@ -12,6 +12,7 @@ namespace BlockPuzzle.Game
         Home,
         Game,
         Daily,
+        Tutorial,
         Settings,
     }
 
@@ -36,6 +37,10 @@ namespace BlockPuzzle.Game
         public SettingsScreen Settings { get; private set; } = null!;
         public GameController? Game { get; private set; }
         public GameController? Daily { get; private set; }
+
+        /// <summary>The first-time tutorial while it runs; built on a new player's first Play and dropped when it ends.</summary>
+        public GameController? Tutorial { get; private set; }
+
         public AppScreen Current { get; private set; }
 
         int Today => DailyPuzzle.DayNumber(_utcNow());
@@ -80,6 +85,7 @@ namespace BlockPuzzle.Game
         public void ShowHome()
         {
             CloseDaily();
+            CloseTutorial();   // left mid-way, it starts over next time
             int today = Today;
             _homeDay = today;
             // Once the Classic screen exists it keeps the shared SaveData current after every move. Before that, only a
@@ -89,9 +95,20 @@ namespace BlockPuzzle.Game
             Show(AppScreen.Home);
         }
 
-        /// <summary>Continues the Classic game in progress, or starts the next one, including after a game over.</summary>
+        /// <summary>
+        /// Continues the Classic game in progress, or starts the next one, including after a game over. A new player's
+        /// first Play runs the tutorial instead, and Classic starts when it ends.
+        /// </summary>
         public void PlayOrContinue()
         {
+            if (Game == null && TutorialMode.ShouldShow(_save))
+            {
+                CloseTutorial();
+                Tutorial = CreateGame("Tutorial", new TutorialMode(_save));
+                Tutorial.Completed += OnTutorialCompleted;
+                Show(AppScreen.Tutorial);
+                return;
+            }
             if (Game == null) Game = CreateGame("Game", new ClassicMode(_save));
             if (Game.GameOver.IsShown) Game.PlayAgain();   // after a game over, or a saved game that was already over
             Show(AppScreen.Game);
@@ -115,6 +132,21 @@ namespace BlockPuzzle.Game
             if (Current == AppScreen.Settings) ShowHome();
             else if (Current == AppScreen.Game && Game != null) Game.TogglePause();
             else if (Current == AppScreen.Daily && Daily != null) Daily.TogglePause();
+            else if (Current == AppScreen.Tutorial && Tutorial != null) Tutorial.TogglePause();
+        }
+
+        void OnTutorialCompleted()
+        {
+            CloseTutorial();
+            PlayOrContinue();   // the save says the tutorial is done now, so this starts Classic
+        }
+
+        void CloseTutorial()
+        {
+            if (Tutorial == null) return;
+            Tutorial.gameObject.SetActive(false);
+            Destroy(Tutorial.gameObject);
+            Tutorial = null;
         }
 
         GameController CreateGame(string name, GameMode mode)
@@ -143,6 +175,7 @@ namespace BlockPuzzle.Game
             Settings.gameObject.SetActive(screen == AppScreen.Settings);
             if (Game != null) Game.gameObject.SetActive(screen == AppScreen.Game);
             if (Daily != null) Daily.gameObject.SetActive(screen == AppScreen.Daily);
+            if (Tutorial != null) Tutorial.gameObject.SetActive(screen == AppScreen.Tutorial);
         }
 
         void SaveSettings() => _settingsStore?.Save(_settings);
