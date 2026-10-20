@@ -13,6 +13,18 @@ namespace BlockPuzzle.Game.Tests
     {
         const ulong Seed = 20261020;
 
+        /// <summary>From DailyPuzzleTests: every phone must deal 2026-10-20's Daily the same way.</summary>
+        [Test]
+        public void A_daily_deals_the_same_first_tray_as_dotnet()
+        {
+            const int October20 = 20746;
+
+            var game = DailyPuzzle.NewGame(October20);
+
+            Assert.AreEqual(4023608590332759023UL, DailyPuzzle.Seed(October20));
+            Assert.AreEqual("c3d,t4a,c3a", TestGames.TrayIds(game));
+        }
+
         [TestCase("gentle", "i2h,i2h,t4a c3c,i2v,i3v c3b,t4d,c3a i3h,i2h,i3v s4v,o3,l4d j4b,c5c,l4d j4a,l4d,l4c c3d,i3h,z4v")]
         [TestCase("baseline", "i2h,i2h,t4a o2,i3v,i2v i4h,o2,t4b l4a,j4a,i3h i4v,o3,c3c c3c,i5h,i3h i2v,c3d,s4h i3h,i4h,c3a")]
         [TestCase("hard", "i2v,l4b,i2h dot,j4a,c3c r23,s4h,t4b c3b,o3,j4b i3h,t4b,i3v o3,o3,c5a j4b,c5c,i5h c5c,c5a,c5a")]

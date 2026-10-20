@@ -172,6 +172,19 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [Test]
+        public void An_old_save_without_daily_data_loads_with_an_empty_daily()
+        {
+            File.WriteAllText(SavePath, "{\"Version\":1,\"HasGame\":false,\"NextGameIndex\":3,\"BestScore\":250}");
+
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var data));
+
+            Assert.AreEqual(250, data.BestScore);
+            Assert.IsFalse(data.Daily.HasGame);
+            Assert.AreEqual(-1, data.Daily.Record.LastDay);
+            Assert.AreEqual(0, data.Daily.Record.Streak);
+        }
+
+        [Test]
         public void Write_creates_the_folder_if_needed()
         {
             var store = new SaveStore(Path.Combine(_folder, "nested", "save.json"));
