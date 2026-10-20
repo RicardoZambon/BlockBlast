@@ -395,6 +395,24 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator The_pause_button_mid_drag_sends_the_piece_back()
+        {
+            var game = Boot();
+            yield return null;
+            game.Drag.Press(game.Layout.TraySlotCenter(0));
+            game.Drag.Drag(PointerFor(game.Layout, game.Game.GetTrayPiece(0)!, 0, 0));
+            yield return null;
+
+            game.Hud.PressPause();   // with another finger, while the dragging one is still down
+
+            Assert.IsFalse(game.Drag.IsDragging);
+            game.Pause.PressResume();
+            yield return WaitForReturn();
+            Assert.AreEqual(0, game.Game.Placements);
+            Assert.IsTrue(game.Drag.Press(game.Layout.TraySlotCenter(0)), "after Resume, the next touch starts a fresh drag");
+        }
+
+        [UnityTest]
         public IEnumerator Pause_home_and_game_over_home_raise_HomeRequested()
         {
             SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));

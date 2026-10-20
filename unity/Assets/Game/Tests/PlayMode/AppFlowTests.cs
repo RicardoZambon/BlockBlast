@@ -4,6 +4,8 @@ using System.IO;
 using BlockPuzzle.Core;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
 using static BlockPuzzle.Game.Tests.TestDrags;
 
@@ -72,6 +74,7 @@ namespace BlockPuzzle.Game.Tests
             yield return DragAndRelease(game, 0, PointerFor(game.Layout, game.Game.GetTrayPiece(0)!, 0, 0));
             var board = game.Game.Board;
             int placements = game.Game.Placements;
+            Assert.AreEqual(1, placements, "a new game would have none, so Continue must keep this one");
 
             game.TogglePause();
             game.Pause.PressHome();
@@ -102,6 +105,9 @@ namespace BlockPuzzle.Game.Tests
 
             yield return DragAndRelease(game, 0, PointerFor(game.Layout, PieceCatalog.Standard["i2h"], 0, 1));
             Assert.IsTrue(game.GameOver.IsShown);
+            app.Back();
+            Assert.IsFalse(game.IsPaused, "back on game over does nothing");
+            Assert.IsTrue(game.GameOver.IsShown);
             game.GameOver.PressHome();
             yield return null;
             Assert.AreEqual(AppScreen.Home, app.Current);
@@ -112,6 +118,88 @@ namespace BlockPuzzle.Game.Tests
             Assert.IsFalse(game.GameOver.IsShown, "Play starts the next game, never the finished one");
             Assert.IsFalse(game.Game.IsGameOver);
             Assert.AreEqual(0, game.Game.Placements);
+        }
+
+        [UnityTest]
+        public IEnumerator A_saved_game_that_is_already_over_offers_play_and_starts_a_new_game()
+        {
+            TestGames.Save(SavePath, TestGames.Position(TestBoards.Checkerboard, "i2h", "o3", "o3"), gameIndex: 2);
+            var app = Boot();
+            yield return null;
+            Assert.AreEqual("Play", app.Home.PlayLabel);
+
+            app.Home.PressPlay();
+            yield return null;
+
+            var game = app.Game!;
+            Assert.IsFalse(game.GameOver.IsShown);
+            Assert.IsFalse(game.Game.IsGameOver);
+            Assert.AreEqual(3, game.Game.GameIndex, "the finished game still counts");
+        }
+
+        [UnityTest]
+        public IEnumerator A_saved_game_that_cannot_resume_offers_play()
+        {
+            var snapshot = TestGames.Position(Board.Empty, "dot", "o2", "i3h").ToSnapshot();
+            snapshot.Tray = new[] { "no-such-piece", "o2", "i3h" };   // as if a later version dropped a piece
+            new SaveStore(SavePath).Write(new SaveData { HasGame = true, Game = snapshot });
+
+            var app = Boot();
+            yield return null;
+
+            Assert.AreEqual("Play", app.Home.PlayLabel);
+        }
+
+        [UnityTest]
+        public IEnumerator A_damaged_settings_file_still_boots_with_the_game_intact()
+        {
+            TestGames.Save(SavePath, TestGames.Position(Board.Empty, "dot", "o2", "i3h"));
+            File.WriteAllText(Path.Combine(_folder, SettingsStore.FileName), "{ not json");
+
+            var app = Boot();
+            yield return null;
+            Assert.IsTrue(app.Settings.IsOn("Sound"));
+            Assert.IsFalse(app.Settings.IsOn("Reduced motion"));
+            Assert.AreEqual("Continue", app.Home.PlayLabel);
+
+            app.Home.PressPlay();
+            yield return null;
+            Assert.AreEqual("dot", app.Game!.Game.GetTrayPiece(0)!.Id);
+        }
+
+        [UnityTest]
+        public IEnumerator The_escape_key_goes_back()
+        {
+            // Batch mode has no focused Game view, so for this test all input goes to the game, as it does on a phone.
+            // The project has no Input System settings asset, so these are the defaults, changed in memory and put back.
+            var settings = InputSystem.settings;
+            var background = settings.backgroundBehavior;
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+#if UNITY_EDITOR
+            var editorBehavior = settings.editorInputBehaviorInPlayMode;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
+            var keyboard = InputSystem.AddDevice<Keyboard>();   // the Android back button arrives as Escape
+            keyboard.MakeCurrent();
+            try
+            {
+                var app = Boot();
+                yield return null;
+                app.ShowSettings();
+
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+                yield return null;
+
+                Assert.AreEqual(AppScreen.Home, app.Current);
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                settings.backgroundBehavior = background;
+#if UNITY_EDITOR
+                settings.editorInputBehaviorInPlayMode = editorBehavior;
+#endif
+            }
         }
 
         [UnityTest]

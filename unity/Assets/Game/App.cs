@@ -60,7 +60,9 @@ namespace BlockPuzzle.Game
 
         public void ShowHome()
         {
-            Home.Refresh(_save.HasGame);   // the game keeps the shared SaveData current after every move
+            // Once the game screen exists it keeps the shared SaveData current after every move. Before that, only a
+            // save that resumes into a game that isn't over is worth a Continue.
+            Home.Refresh(Game != null ? _save.HasGame : GameController.CanResume(_save));
             Show(AppScreen.Home);
         }
 
@@ -68,7 +70,7 @@ namespace BlockPuzzle.Game
         public void PlayOrContinue()
         {
             if (Game == null) Game = CreateGame();
-            else if (Game.GameOver.IsShown) Game.PlayAgain();
+            if (Game.GameOver.IsShown) Game.PlayAgain();   // after a game over, or a saved game that was already over
             Show(AppScreen.Game);
         }
 

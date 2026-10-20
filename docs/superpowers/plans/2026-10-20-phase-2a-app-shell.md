@@ -263,7 +263,7 @@
 
 Tasks 1–6 were built on 2026-10-20, test-first.
 
-- **Tests:** 81 EditMode and 28 PlayMode tests pass, and the 161 .NET tests are unchanged.
+- **Tests:** 82 EditMode and 33 PlayMode tests pass, and the 161 .NET tests are unchanged.
 - **Screens:**
   - The scene holds a camera, a 2D light and `App`, which builds Home, the game and Settings.
   - Home's main button reads Continue or Play; Daily shows "Daily · soon", disabled.
@@ -278,7 +278,7 @@ Decisions made while building:
   - The pause and game-over overlays are full-screen dims with their buttons in the middle.
   - The development overlay sits in the safe-area panel, with its Bench button in the banner band, which stays empty until Phase 3.
 - **Pausing turns `PointerInput` off,** and `PointerInput.Apply` ignores frames while it's off. That refuses presses, as planned, and also drags and releases. The board stays visible behind the overlay.
-- **`SafeAreaPanel` applies its anchors in `Create`,** not only in `Awake`, because `Awake` doesn't run in EditMode tests. `Update` reapplies them when the safe area or the screen size changes.
+- **`SafeAreaPanel` applies its anchors in `Create` instead of `Awake`,** because `Awake` doesn't run in EditMode tests. `Update` passes the live values to `ApplyIfChanged`, which reapplies them only when the safe area or the screen size changes.
 - **Shared code:**
   - `UiFactory` gained `Canvas` and `EnsureEventSystem`, moved out of `GameController`, so App and the screens share them.
   - App creates the EventSystem before any screen, so a hidden game never takes it down with it.
@@ -287,3 +287,14 @@ Decisions made while building:
 - **Home's title** is `Application.productName` until task 0.2 names the game.
 - **The back button on game over** does nothing; the panel has Home and Play again.
 - **Task 1.8's phone checks** moved to the master plan's tasks 4.1 and 4.2, so they no longer hold anything up.
+
+A fresh review of the branch found no runtime defects. Its findings were fixed test-first:
+- **Test gaps closed:**
+  - Pausing mid-drag sends the piece back, and the next touch after Resume starts a fresh drag. A version without the cancel was checked and fails this test.
+  - The safe-area panel moves when the safe area changes. In the Editor the safe area is the whole screen, so the old test couldn't fail.
+- **Home's label:** before the game screen exists, it asks `GameController.CanResume`, so a saved game that is already over, or can't be resumed, offers Play, not Continue. Play then starts a new game instead of showing an old game over.
+- **More tests:**
+  - A damaged settings file still boots, with the saved game intact.
+  - The Escape key (Android's back button) goes back.
+  - Back does nothing on game over.
+  - Each settings toggle changes only its own setting.

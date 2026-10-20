@@ -148,13 +148,40 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [Test]
-        public void A_safe_area_panel_matches_the_safe_area_anchors()
+        public void A_safe_area_panel_follows_a_new_safe_area()
         {
             var panel = SafeAreaPanel.Create(Canvas());
 
-            SafeArea.Anchors(Screen.safeArea, new Vector2(Screen.width, Screen.height), out var min, out var max);
-            Assert.AreEqual(min, panel.anchorMin);
-            Assert.AreEqual(max, panel.anchorMax);
+            // In the Editor the safe area is the whole screen; on a phone a notch and a gesture bar take their share.
+            panel.GetComponent<SafeAreaPanel>().ApplyIfChanged(new Rect(0, 96, 1080, 2216), new Vector2(1080, 2400));
+
+            Assert.AreEqual(0f, panel.anchorMin.x, 1e-5f);
+            Assert.AreEqual(0.04f, panel.anchorMin.y, 1e-5f);
+            Assert.AreEqual(1f, panel.anchorMax.x, 1e-5f);
+            Assert.AreEqual(0.963333f, panel.anchorMax.y, 1e-5f);
+        }
+
+        static (bool sound, bool music, bool haptics, bool reducedMotion) Values(SettingsData s) =>
+            (s.Sound, s.Music, s.Haptics, s.ReducedMotion);
+
+        [Test]
+        public void Each_settings_toggle_changes_only_its_own_setting_and_reports_it()
+        {
+            var settings = new SettingsData();
+            int changes = 0;
+            var screen = SettingsScreen.Create(Canvas(), settings, () => changes++, () => { });
+            Assert.AreEqual(0, changes, "building the screen changes nothing");
+
+            screen.SetToggle("Sound", false);
+            Assert.AreEqual((false, true, true, false), Values(settings));
+            screen.SetToggle("Music", false);
+            Assert.AreEqual((false, false, true, false), Values(settings));
+            screen.SetToggle("Haptics", false);
+            Assert.AreEqual((false, false, false, false), Values(settings));
+            screen.SetToggle("Reduced motion", true);
+            Assert.AreEqual((false, false, false, true), Values(settings));
+            Assert.AreEqual(4, changes);
+            Assert.IsTrue(screen.IsOn("Reduced motion"));
         }
 
         [Test]

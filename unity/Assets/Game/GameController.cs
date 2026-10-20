@@ -145,6 +145,14 @@ namespace BlockPuzzle.Game
             SaveGameInProgress();
         }
 
+        /// <summary>Whether a save holds a game that resumes and isn't over: what Home offers as Continue.</summary>
+        public static bool CanResume(SaveData save)
+        {
+            if (!save.HasGame) return false;
+            var game = Resume(save.Game);
+            return game != null && !game.IsGameOver;
+        }
+
         static GameSession? Resume(GameSnapshot snapshot)
         {
             try
