@@ -125,6 +125,38 @@ public class GameSessionTests
     }
 
     [Fact]
+    public void A_game_rejects_invalid_scoring_settings_and_negative_counters()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings { PointsPerCell = -1 }, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), 1, gameIndex: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), 1, recentQuickLosses: -1));
+    }
+
+    [Fact]
+    public void Changing_the_settings_objects_mid_game_does_not_affect_the_game()
+    {
+        var generatorSettings = GeneratorSettings.Baseline();
+        var scoringSettings = new ScoringSettings();
+        var game = new GameSession(PieceCatalog.Standard, generatorSettings, scoringSettings, seed: 3);
+        var twin = NewGame(seed: 3);
+
+        generatorSettings.Bands = null!;
+        generatorSettings.MaxWholeTrayAttempts = 1_000_000;
+        scoringSettings.PointsPerCell = 1000;
+
+        for (int i = 0; i < 30 && !twin.IsGameOver; i++)
+        {
+            TestPlay.FirstFit(game);
+            TestPlay.FirstFit(twin);
+            Assert.Equal(TrayIds(twin), TrayIds(game));
+            Assert.Equal(twin.Score, game.Score);
+        }
+    }
+
+    [Fact]
     public void Placements_far_off_the_board_are_rejected()
     {
         // c3d fits nowhere on the checkerboard; the dots keep the game going.

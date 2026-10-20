@@ -56,6 +56,29 @@ public class ScoringTests
     }
 
     [Fact]
+    public void Validate_rejects_values_that_could_make_scores_negative()
+    {
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { PointsPerCell = -1 }.Validate());
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { LineBase = -10 }.Validate());
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { StreakBonusPercent = -150 }.Validate());
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { BoardClearBonus = -1 }.Validate());
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { StreakResetAfterMisses = 0 }.Validate());
+        Assert.Throws<ArgumentException>(() => new ScoringSettings { LineBase = 2_000_000 }.Validate());
+        new ScoringSettings().Validate();
+    }
+
+    [Fact]
+    public void The_score_stops_at_the_maximum_instead_of_wrapping()
+    {
+        var extreme = new ScoringSettings { LineBase = ScoringSettings.MaxValue, StreakBonusPercent = ScoringSettings.MaxValue };
+
+        var state = Scoring.Apply(extreme, new ScoreState(int.MaxValue - 5, 1000, 0, 1000), cellsPlaced: 9, lines: 6, boardCleared: false, out int points);
+
+        Assert.Equal(int.MaxValue, state.Score);
+        Assert.Equal(5, points);
+    }
+
+    [Fact]
     public void Clearing_the_whole_board_adds_the_bonus()
     {
         Scoring.Apply(Defaults, default, 1, 1, boardCleared: true, out int points);

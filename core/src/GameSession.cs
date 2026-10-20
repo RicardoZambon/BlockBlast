@@ -49,9 +49,16 @@ namespace BlockPuzzle.Core
         GameSession(PieceCatalog catalog, GeneratorSettings generatorSettings, ScoringSettings scoringSettings, Pcg32 rng, int gameIndex, int recentQuickLosses)
         {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            _generatorSettings = generatorSettings ?? throw new ArgumentNullException(nameof(generatorSettings));
-            _scoringSettings = scoringSettings ?? throw new ArgumentNullException(nameof(scoringSettings));
-            _generator = new PieceGenerator(catalog, generatorSettings, rng);
+            if (generatorSettings == null) throw new ArgumentNullException(nameof(generatorSettings));
+            if (scoringSettings == null) throw new ArgumentNullException(nameof(scoringSettings));
+            if (gameIndex < 0) throw new ArgumentOutOfRangeException(nameof(gameIndex));
+            if (recentQuickLosses < 0) throw new ArgumentOutOfRangeException(nameof(recentQuickLosses));
+
+            // Copies, so later edits to the caller's settings objects can't change a game in progress.
+            _generatorSettings = generatorSettings.Clone();
+            _scoringSettings = scoringSettings.Clone();
+            _scoringSettings.Validate();
+            _generator = new PieceGenerator(catalog, _generatorSettings, rng);
             GameIndex = gameIndex;
             RecentQuickLosses = recentQuickLosses;
         }

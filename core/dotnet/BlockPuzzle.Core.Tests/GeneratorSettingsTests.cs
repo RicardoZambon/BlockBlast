@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace BlockPuzzle.Core.Tests;
 
 public class GeneratorSettingsTests
@@ -65,6 +67,21 @@ public class GeneratorSettingsTests
     public void Validate_rejects_weights_too_large_to_add_up()
     {
         Assert.Throws<ArgumentException>(() => new GeneratorSettings { Bands = new[] { new DifficultyBand(0, 0, int.MaxValue, 1, 0) } }.Validate());
+    }
+
+    [Fact]
+    public void Validate_rejects_an_undefined_fit_guarantee()
+    {
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { FitGuarantee = (FitGuarantee)22 }.Validate());
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { FitGuarantee = (FitGuarantee)(-1) }.Validate());
+    }
+
+    [Fact]
+    public void New_settings_default_to_the_baseline_profile()
+    {
+        var json = new JsonSerializerOptions { IncludeFields = true };
+
+        Assert.Equal(JsonSerializer.Serialize(GeneratorSettings.Baseline(), json), JsonSerializer.Serialize(new GeneratorSettings(), json));
     }
 
     [Fact]

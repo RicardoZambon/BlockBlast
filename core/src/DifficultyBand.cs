@@ -27,6 +27,8 @@ namespace BlockPuzzle.Core
             Large = large;
         }
 
+        public DifficultyBand Clone() => (DifficultyBand)MemberwiseClone();
+
         public int WeightOf(PieceCategory category)
         {
             switch (category)

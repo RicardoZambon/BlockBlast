@@ -5,15 +5,21 @@ namespace BlockPuzzle.Core
 {
     /// <summary>
     /// Tuning values for the piece generator. Public fields so Unity's JsonUtility and the
-    /// Remote Config loader can fill them.
+    /// Remote Config loader can fill them. A new instance holds the Baseline profile, so keys
+    /// missing from a partial Remote Config payload keep the tuned values.
     /// </summary>
     [Serializable]
     public sealed class GeneratorSettings
     {
-        public string Name = "custom";
+        public string Name = "baseline";
         public FitGuarantee FitGuarantee = FitGuarantee.AtLeastOne;
         /// <summary>Category weights by game progress, sorted by FromPlacement; the first band starts at 0.</summary>
-        public DifficultyBand[] Bands = { new DifficultyBand(0, 0, 35, 45, 20) };
+        public DifficultyBand[] Bands =
+        {
+            new DifficultyBand(0, 0, 43, 45, 12),
+            new DifficultyBand(30, 0, 37, 45, 18),
+            new DifficultyBand(90, 0, 31, 44, 25),
+        };
         /// <summary>Until this placement, a slot may prefer a piece that can complete a line.</summary>
         public int HelpfulUntilPlacement = 15;
         /// <summary>Chance (0-100) that a slot uses that preference while it applies.</summary>
@@ -53,10 +59,25 @@ namespace BlockPuzzle.Core
                     throw new ArgumentException("Difficulty bands must be sorted by FromPlacement.");
             }
             ValidateBand(Mercy, nameof(Mercy));
+            if (FitGuarantee < FitGuarantee.None || FitGuarantee > FitGuarantee.WholeTray)
+                throw new ArgumentException($"FitGuarantee {(int)FitGuarantee} is not a defined value.");
             if (HelpfulChancePercent < 0 || HelpfulChancePercent > 100)
                 throw new ArgumentException("HelpfulChancePercent must be between 0 and 100.");
             if (MaxWholeTrayAttempts < 1 || MaxWholeTrayAttempts > MaxWholeTrayAttemptsLimit)
                 throw new ArgumentException($"MaxWholeTrayAttempts must be between 1 and {MaxWholeTrayAttemptsLimit}.");
+        }
+
+        /// <summary>A deep copy, so edits to the original can't change a game in progress.</summary>
+        public GeneratorSettings Clone()
+        {
+            var copy = (GeneratorSettings)MemberwiseClone();
+            if (Bands != null)
+            {
+                copy.Bands = new DifficultyBand[Bands.Length];
+                for (int i = 0; i < Bands.Length; i++) copy.Bands[i] = Bands[i] == null ? null! : Bands[i].Clone();
+            }
+            if (Mercy != null) copy.Mercy = Mercy.Clone();
+            return copy;
         }
 
         static void ValidateBand(DifficultyBand band, string name)
@@ -85,17 +106,8 @@ namespace BlockPuzzle.Core
             HelpfulChancePercent = 70,
         };
 
-        /// <summary>The default for new players.</summary>
-        public static GeneratorSettings Baseline() => new GeneratorSettings
-        {
-            Name = "baseline",
-            Bands = new[]
-            {
-                new DifficultyBand(0, 0, 43, 45, 12),
-                new DifficultyBand(30, 0, 37, 45, 18),
-                new DifficultyBand(90, 0, 31, 44, 25),
-            },
-        };
+        /// <summary>The default for new players; the same as <c>new GeneratorSettings()</c>.</summary>
+        public static GeneratorSettings Baseline() => new GeneratorSettings();
 
         /// <summary>Harder: more large pieces sooner, no helpful phase.</summary>
         public static GeneratorSettings Hard() => new GeneratorSettings

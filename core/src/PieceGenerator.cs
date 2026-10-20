@@ -21,9 +21,10 @@ namespace BlockPuzzle.Core
         public PieceGenerator(PieceCatalog catalog, GeneratorSettings settings, Pcg32 rng)
         {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
             _rng = rng ?? throw new ArgumentNullException(nameof(rng));
-            settings.Validate();
+            _settings = settings.Clone(); // later edits to the caller's object can't reach this generator
+            _settings.Validate();
 
             var lists = new List<PieceShape>[CategoryCount];
             _allowed = new List<PieceShape>[CategoryCount];

@@ -32,12 +32,12 @@ namespace BlockPuzzle.Core
 
             int streak = state.Streak;
             int misses = state.MissesSinceClear;
-            int linePoints = 0;
+            long linePoints = 0;
             if (lines > 0)
             {
                 streak++;
                 misses = 0;
-                int multiplierPercent = 100 + settings.StreakBonusPercent * (streak - 1);
+                long multiplierPercent = 100L + (long)settings.StreakBonusPercent * (streak - 1);
                 linePoints = LinePoints(settings, lines) * multiplierPercent / 100;
             }
             else
@@ -46,7 +46,9 @@ namespace BlockPuzzle.Core
                 if (misses >= settings.StreakResetAfterMisses) streak = 0;
             }
 
-            points = cellsPlaced * settings.PointsPerCell + linePoints + (boardCleared ? settings.BoardClearBonus : 0);
+            // Long arithmetic, capped so the running score stops at int.MaxValue instead of wrapping negative.
+            long total = (long)cellsPlaced * settings.PointsPerCell + linePoints + (boardCleared ? settings.BoardClearBonus : 0);
+            points = (int)Math.Min(total, (long)int.MaxValue - state.Score);
             return new ScoreState(state.Score + points, streak, misses, Math.Max(state.MaxStreak, streak));
         }
     }
