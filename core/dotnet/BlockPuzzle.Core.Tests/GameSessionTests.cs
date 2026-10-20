@@ -125,6 +125,19 @@ public class GameSessionTests
     }
 
     [Fact]
+    public void Placements_far_off_the_board_are_rejected()
+    {
+        // c3d fits nowhere on the checkerboard; the dots keep the game going.
+        var game = Position(TestBoards.Checkerboard, new[] { "c3d", "dot", "dot" });
+
+        Assert.False(game.CanPlace(0, 0, int.MaxValue));
+        Assert.False(game.TryPlace(0, 0, int.MaxValue, out _));
+        Assert.False(game.TryPlace(0, int.MaxValue - 1, 0, out _));
+        Assert.Equal(0, game.Placements);
+        Assert.Equal("c3d,dot,dot", TrayIds(game));
+    }
+
+    [Fact]
     public void Placing_the_last_piece_deals_a_new_tray()
     {
         var game = Position(Board.Empty, new[] { "dot", "dot", "dot" });

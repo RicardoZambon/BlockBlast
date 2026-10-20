@@ -57,7 +57,8 @@ namespace BlockPuzzle.Core
         /// <summary>The mask with the top-left corner at (row, col); false if the piece would leave the board.</summary>
         public bool TryGetMask(int row, int col, out ulong mask)
         {
-            if (row < 0 || col < 0 || row + Height > Board.Size || col + Width > Board.Size)
+            // Unsigned compare: negative values become huge, and nothing can overflow near int.MaxValue.
+            if ((uint)row > (uint)(Board.Size - Height) || (uint)col > (uint)(Board.Size - Width))
             {
                 mask = 0;
                 return false;

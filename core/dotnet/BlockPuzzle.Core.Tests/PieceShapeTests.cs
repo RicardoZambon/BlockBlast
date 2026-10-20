@@ -58,6 +58,17 @@ public class PieceShapeTests
     }
 
     [Fact]
+    public void TryGetMask_rejects_coordinates_that_would_overflow()
+    {
+        var square = PieceShape.FromRows("o3", PieceCategory.Large, "###", "###", "###");
+
+        Assert.False(square.TryGetMask(0, int.MaxValue, out _));
+        Assert.False(square.TryGetMask(int.MaxValue, 0, out _));
+        Assert.False(square.TryGetMask(int.MaxValue - 1, 0, out _));
+        Assert.False(square.TryGetMask(int.MinValue, 0, out _));
+    }
+
+    [Fact]
     public void FromRows_rejects_bad_art()
     {
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("a", PieceCategory.Small));
