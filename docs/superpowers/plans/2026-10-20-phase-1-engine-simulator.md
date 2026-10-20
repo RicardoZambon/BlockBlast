@@ -47,8 +47,8 @@ This plan covers master-plan tasks 1.1–1.7 ([master plan](2026-10-15-block-puz
 |---|---|
 | `.gitignore`, `.gitattributes` | Ignore .NET/Unity build output; normalize line endings |
 | `README.md` | What the repo is, layout, how to run tests and the simulator |
-| `.github/workflows/core.yml` | CI: run the engine tests and a short simulator run |
-| `core/BlockPuzzle.slnx` | Solution with the three .NET projects |
+| `.github/workflows/core.yml` | CI: run the tests and check the simulator's difficulty target |
+| `core/BlockPuzzle.slnx` | Solution with the four .NET projects |
 | `core/src/package.json`, `core/src/BlockPuzzle.Core.asmdef` | Makes `core/src` a local Unity package with no engine references |
 | `core/src/Board.cs` | 64-bit board: fits, place, simultaneous row/column clears, text parsing |
 | `core/src/PlaceResult.cs` | Result of a placement: new board, lines, cleared cells |
@@ -64,7 +64,8 @@ This plan covers master-plan tasks 1.1–1.7 ([master plan](2026-10-15-block-puz
 | `core/src/AdPolicySettings.cs`, `core/src/AdPolicy.cs` | When an interstitial may show |
 | `core/dotnet/BlockPuzzle.Core/BlockPuzzle.Core.csproj` | Compiles `../../src/**/*.cs` for .NET |
 | `core/dotnet/BlockPuzzle.Core.Tests/*` | xUnit tests, one file per engine area |
-| `core/dotnet/BlockPuzzle.Sim/*` | Simulator: options, bots, runner, report |
+| `core/dotnet/BlockPuzzle.Sim/*` | Simulator: options, bots, runner, report, target check |
+| `core/dotnet/BlockPuzzle.Sim.Tests/*` | xUnit tests for the simulator |
 
 Commit messages end with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -3176,4 +3177,11 @@ A follow-up PR fixed the small items above and the CI item from the first review
   - `Board.RowMask` and `Board.ColumnMask` replace the hand-written masks.
   - `PieceGenerator.DealPlaceable` and `GameSession.SetTray` replace the repeated loops.
 
-The golden values didn't change. Neither did the 20,000-game medians: 155, 98 and 46 placements for gentle, baseline and hard. There are now 140 tests: 110 for the engine and 30 for the simulator.
+A fresh review of the follow-up found nothing critical or important. Its five minor findings were fixed too:
+- `SimulationRunner.Run` rejects counts below 1, instead of dividing by zero or returning empty results.
+- A golden seeded run pins each game's seed and slot, the random bot's seed and the mercy carry-over.
+- Boundary tests pin the target's edges: a median of exactly 80 or 150 passes, and exactly 5% of games ending early misses.
+- The report header and footnote take the early-end placement from `Report.EarlyEndPlacements`.
+- The file table above is current.
+
+The golden values didn't change. Neither did the 20,000-game medians: 155, 98 and 46 placements for gentle, baseline and hard. There are now 147 tests: 110 for the engine and 37 for the simulator.
