@@ -20,7 +20,7 @@
   - Original name, art, UI and sounds.
   - Never use "Block Blast" or any other game's name or trademark in the app or its store metadata (App Store Review Guidelines 2.3.7 and 4.1).
 - **Platforms:** iPhone, iPad, Android phones and tablets. Portrait only.
-- **Minimum OS:** iOS 15 and Android 7.0 (API 24). Raise them only if an SDK requires it.
+- **Minimum OS:** iOS 15 and Android 7.1 (API 25). Unity 6.3 supports nothing lower, so API 24 (Android 7.0) was raised. Raise them only if an SDK requires it.
 - **Store build rules:**
   - Android `targetSdkVersion` 36, required for new apps and updates since 2026-08-31.
   - iOS builds made with Xcode 26 or later against the iOS 26 SDK, required since 2026-04-28.

@@ -1,6 +1,6 @@
 # Block puzzle game
 
-An original 8×8 block puzzle for iOS and Android (working title). This repository holds the plans and the game's rules engine; the Unity app comes next.
+An original 8×8 block puzzle for iOS and Android (working title). This repository holds the plans, the game's rules engine and a rough Unity prototype.
 
 - [Master plan](docs/superpowers/plans/2026-10-15-block-puzzle-game.md): every phase from setup to revenue
 - [Phase 1 plan](docs/superpowers/plans/2026-10-20-phase-1-engine-simulator.md): the engine and the simulator, step by step
@@ -15,6 +15,8 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 | `core/dotnet/BlockPuzzle.Core.Tests/` | xUnit tests for the engine |
 | `core/dotnet/BlockPuzzle.Sim/` | Simulator: bots play thousands of games to tune the piece generator |
 | `core/dotnet/BlockPuzzle.Sim.Tests/` | xUnit tests for the simulator |
+| `unity/` | The Unity 6.3 LTS prototype (6000.3.26f1, Universal 2D). The game is in `unity/Assets/Game` |
+| `unity/Assets/Game/Tests/` | Unity EditMode and PlayMode tests |
 
 ## Run
 
@@ -25,3 +27,20 @@ dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- --games 20000 --p
 ```
 
 CI runs the tests and the last command, which exits with code 2 if the greedy bot on the baseline profile misses the Phase 1 difficulty target: a median of 80–150 placements, with under 5% of games ending before placement 20.
+
+### Unity
+
+Open `unity/` in Unity 6000.3.26f1, open `Assets/Game/Scenes/Game.unity` and press Play. To run the tests from a shell:
+- Close the Editor, because it locks the project.
+- Keep Unity Hub running: the Editor gets its license from the Hub's licensing client.
+
+```bash
+export UNITY="/c/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe"
+"$UNITY" -batchmode -nographics -projectPath unity -runTests -testPlatform EditMode -testResults "$PWD/unity/Logs/editmode.xml" -logFile "$PWD/unity/Logs/editmode.log"
+"$UNITY" -batchmode -nographics -projectPath unity -runTests -testPlatform PlayMode -testResults "$PWD/unity/Logs/playmode.xml" -logFile "$PWD/unity/Logs/playmode.log"
+```
+
+The menu **Block Puzzle** (or `-executeMethod BlockPuzzle.Game.EditorTools.ProjectSetup.<method>`) offers three methods:
+- `ApplySettings` reapplies the project settings.
+- `BuildScene` regenerates the scene.
+- `BuildAndroidDevelopment` builds `unity/Builds/Android/blockpuzzle-dev.apk`. Add `-buildTarget Android` when running it from a shell.
