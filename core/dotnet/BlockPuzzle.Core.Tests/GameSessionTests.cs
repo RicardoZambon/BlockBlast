@@ -26,20 +26,6 @@ public class GameSessionTests
 
     static string TrayIds(GameSession game) => string.Join(",", game.Tray.ToArray().Select(p => p?.Id ?? "-"));
 
-    static void PlayFirstLegalMove(GameSession game)
-    {
-        var tray = game.Tray.ToArray();
-        for (int slot = 0; slot < tray.Length; slot++)
-        {
-            var shape = tray[slot];
-            if (shape is null) continue;
-            for (int i = 0; i < shape.PlacementCount; i++)
-            {
-                if (game.TryPlace(slot, shape.AnchorRow(i), shape.AnchorCol(i), out _)) return;
-            }
-        }
-    }
-
     [Fact]
     public void A_new_game_starts_empty_with_three_pieces()
     {
@@ -168,7 +154,7 @@ public class GameSessionTests
     public void A_saved_game_resumes_exactly()
     {
         var original = NewGame(seed: 42);
-        for (int i = 0; i < 10 && !original.IsGameOver; i++) PlayFirstLegalMove(original);
+        for (int i = 0; i < 10 && !original.IsGameOver; i++) TestPlay.FirstFit(original);
 
         string json = JsonSerializer.Serialize(original.ToSnapshot(), Json);
         var snapshot = JsonSerializer.Deserialize<GameSnapshot>(json, Json)!;
@@ -177,8 +163,8 @@ public class GameSessionTests
         for (int i = 0; i < 40 && !original.IsGameOver; i++)
         {
             Assert.Equal(TrayIds(original), TrayIds(restored));
-            PlayFirstLegalMove(original);
-            PlayFirstLegalMove(restored);
+            TestPlay.FirstFit(original);
+            TestPlay.FirstFit(restored);
             Assert.Equal(original.Board, restored.Board);
             Assert.Equal(original.Score, restored.Score);
             Assert.Equal(original.IsGameOver, restored.IsGameOver);
