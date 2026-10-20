@@ -19,6 +19,7 @@ namespace BlockPuzzle.Game.Tests
 
         [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void The_board_and_tray_fit_inside_the_safe_area(float width, float height)
         {
@@ -45,7 +46,29 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [TestCase(9f, 16f)]
+        [TestCase(9f, 21f)]
+        [TestCase(12f, 16f)]
+        public void The_banner_band_stays_clear(float width, float height)
+        {
+            var area = Area(width, height);
+            var layout = new BoardLayout(area, bannerHeight: 1f);
+            float cell = layout.CellSize;
+
+            Assert.AreEqual(Mathf.Min(width * 0.92f / 8, (height - 1f) / 13.25f), cell, 1e-5f);
+            Assert.AreEqual(layout.BoardTopLeft.y + 1.5f * cell, layout.ScoreBandTop, Tolerance);
+            Assert.LessOrEqual(layout.ScoreBandTop, area.yMax - 1f + Tolerance, "the score band must stay below the banner band");
+            var half = new Vector2(8f / 3f * cell / 2, 1.5f * cell);
+            for (int slot = 0; slot < 3; slot++)
+            {
+                Vector2 centre = layout.TraySlotCenter(slot);
+                AssertInside(area, centre - half);
+                AssertInside(area, centre + half);
+            }
+        }
+
+        [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void Cell_size_is_the_smaller_of_width_and_height_limits(float width, float height)
         {
@@ -54,6 +77,7 @@ namespace BlockPuzzle.Game.Tests
 
         [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void Cell_centres_map_back_to_their_cells(float width, float height)
         {
@@ -72,6 +96,7 @@ namespace BlockPuzzle.Game.Tests
 
         [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void Each_tray_slot_is_found_at_its_centre_and_the_board_is_not_a_slot(float width, float height)
         {
@@ -83,6 +108,7 @@ namespace BlockPuzzle.Game.Tests
 
         [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void A_dragged_piece_floats_one_and_a_half_cells_above_the_pointer(float width, float height)
         {
@@ -99,6 +125,7 @@ namespace BlockPuzzle.Game.Tests
 
         [TestCase(9f, 16f)]
         [TestCase(9f, 20f)]
+        [TestCase(9f, 21f)]
         [TestCase(12f, 16f)]
         public void A_tray_piece_is_centred_in_its_slot_at_tray_scale(float width, float height)
         {

@@ -28,10 +28,12 @@ namespace BlockPuzzle.Game
         readonly float _trayTop;
 
         /// <param name="safeWorldRect">The visible area in world units, minus notches and other cut-outs.</param>
-        public BoardLayout(Rect safeWorldRect)
+        /// <param name="bannerHeight">World units at the top of the safe area kept free for the banner ad.</param>
+        public BoardLayout(Rect safeWorldRect, float bannerHeight = 0f)
         {
-            CellSize = Mathf.Min(safeWorldRect.width * WidthShare / BoardCells, safeWorldRect.height / StackCells);
-            float stackTop = safeWorldRect.center.y + StackCells * CellSize / 2;
+            float usableHeight = Mathf.Max(0f, safeWorldRect.height - bannerHeight);
+            CellSize = Mathf.Min(safeWorldRect.width * WidthShare / BoardCells, usableHeight / StackCells);
+            float stackTop = safeWorldRect.yMin + usableHeight / 2 + StackCells * CellSize / 2;
             BoardTopLeft = new Vector2(safeWorldRect.center.x - BoardCells * CellSize / 2, stackTop - ScoreCells * CellSize);
             _trayTop = BoardTopLeft.y - (BoardCells + GapCells) * CellSize;
         }
@@ -40,6 +42,9 @@ namespace BlockPuzzle.Game
 
         /// <summary>The world position of the board's top-left corner.</summary>
         public Vector2 BoardTopLeft { get; }
+
+        /// <summary>The world y of the top of the score band above the board, where the HUD goes.</summary>
+        public float ScoreBandTop => BoardTopLeft.y + ScoreCells * CellSize;
 
         /// <summary>The centre of a board cell; row 0 is the top row.</summary>
         public Vector2 CellCenter(int row, int col) =>
