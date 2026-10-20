@@ -98,4 +98,28 @@
 
 ## Results
 
-(Filled in by Task 3.)
+Tasks 1–3 were built on 2026-10-20, test-first.
+
+- **Tests:** 96 EditMode and 48 PlayMode tests pass. The 173 .NET tests are unchanged, because the engine wasn't touched.
+- **The tutorial:**
+  - A new player's first Play runs three guided moves on one board: a 2×2 square, then a bar that clears row 7, then one that clears column 7. Classic starts right after.
+  - Each step shows one line of text and a disc that slides from the piece to where the finger goes.
+  - Skip ends it at once, and Home starts it over next time.
+  - A save with any Classic or Daily progress never shows it.
+- **Guides:** while a guide is set, a piece lands only on its target, and a drop anywhere else sends it back. A build without the guide was checked and fails `A_drop_off_the_guide_is_refused`.
+
+Decisions made while building:
+- **Only the target accepts the piece,** so every step continues on the board the player made, without fallbacks for a misplaced piece.
+- **The next step's game replaces the engine's freshly dealt tray** in `OnPlaced`, before anything renders it.
+- **No tutorial state is saved.** `TutorialMode.InProgress` does nothing. The file is rewritten, unchanged, when the tutorial starts, and again with `TutorialDone` when it ends.
+- **Button labels:** their padding is now a share of the button's height, so the 100-tall Skip keeps a readable label. The 170- and 200-tall buttons look as before.
+- **The tests' `PointerFor`** now uses `BoardLayout.PointerFor`, which the hand needs too.
+
+A fresh review found no critical or important defects. Its minor findings were fixed:
+- **Tests that couldn't fail:**
+  - The off-guide drop test now checks that the board and the piece stay put. Before, it only checked counts that a step change resets anyway.
+  - `TutorialDone` is checked on a tutorial screen without App, so nothing else writes the save after Skip.
+- **New tests:** a guided drag allocates nothing, and the back button pauses the tutorial.
+- **Left for Phase 3:**
+  - The hint and Skip use the banner band, so the banner must stay hidden during the tutorial.
+  - In development builds the hint's box overlaps the Bench button's edge; the centred text clears it.
