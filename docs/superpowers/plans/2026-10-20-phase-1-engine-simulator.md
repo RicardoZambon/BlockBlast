@@ -3086,7 +3086,46 @@ Final run after tuning: 20,000 games per profile (400 simulated players × 50 ga
   - Before: small/medium/large weights 35/45/20 → 28/45/27 → 22/43/35 gave a median of 68, too hard for the 80–150 target.
   - Two steps of moving weight from large to small pieces gave 43/45/12 → 37/45/18 → 31/44/25.
   - After: a median of 98. Seed 2 gives 98 too. These are now the `Baseline()` weights in `core/src/GeneratorSettings.cs`. The code block in Task 5 shows the starting values.
-- **Random bot:** medians of 19 / 16 / 14 (gentle / baseline / hard). Placement quality matters far more than luck, which is what a skill game needs.
+- **Random bot:** medians of 19 / 17 / 14 (gentle / baseline / hard). Placement quality matters far more than luck, which is what a skill game needs.
 - **Mercy:** almost never triggers for the greedy bot, because it rarely loses quickly. For the random bot it covers 23–60% of games, so it's working.
 - **Cap and speed:** no game hit the 10,000-placement cap, and a full 3 × 20,000-game run takes about 3 seconds.
 - **Next:** recalibrate against real players in master-plan task 1.9. The target there is Classic games lasting 3–8 minutes.
+
+### Final review
+
+A fresh reviewer checked the whole branch. Verdict: "with fixes", with no critical issues. The three important findings were fixed test-first (85 tests now):
+
+- **Settings validation:**
+  - It no longer crashes on a missing band.
+  - It rejects weights above 1,000,000, so they can't overflow when added.
+  - It caps `MaxWholeTrayAttempts` at 100.
+  - A mistyped Remote Config value now fails with `ArgumentException`, which the Phase 3 loader can catch and fall back to defaults.
+- **Golden determinism tests** (`DeterminismTests`): they pin the exact trays a fixed seed deals for each profile, and the end state of a seeded game played first-fit. If dealing ever changes on any platform or app version, CI fails.
+- **Corrupt saves:** `FromSnapshot` now always fails with `ArgumentException`, for:
+  - unknown piece ids
+  - another snapshot version
+  - negative counters
+  - boards with a full row or column (`Board.HasFullLine`)
+
+  Shape ids are documented as a saved format.
+
+Deferred, minor today:
+- **Task 1.8 (Unity prototype):**
+  - Check that Unity's `JsonUtility` saves and loads the 64-bit snapshot fields exactly.
+  - Run the golden tests in EditMode.
+  - Commit the `.meta` files Unity generates in `core/src`.
+  - Add `GetTrayPiece(slot)`, because the `Tray` span can't be used across coroutine or async boundaries.
+  - Move the quick-loss rule into the engine, so the Unity code and the simulator share it.
+  - Set `<Nullable>disable</Nullable>` in the engine project, so CI catches a missing `#nullable enable` the way Unity would.
+  - Add that directive to `PieceCategory.cs` and `FitGuarantee.cs`.
+- **Task 1.9 (playtests):**
+  - Re-derive Gentle's weights from the tuned Baseline. Its pieces are no longer smaller on average; it is easier only because of WholeTray and its helpful phase.
+  - Decide whether the revive gets its own small-piece band. Today it reuses Mercy, giving 34.5% medium and 4.9% large pieces.
+- **Phase 2 (Daily Puzzle):** store the generator settings name and version in the snapshot, and copy the settings when a game starts, so a Remote Config update can't change a game in progress.
+- **Phase 3 (ads):**
+  - Document that `gamesCompleted` includes the game that just ended.
+  - Make `TryRevive` not spend the revive when the rescue tray can't be placed. That can only happen with a custom catalog.
+- **CI:** move `actions/checkout` and `actions/setup-dotnet` to their current majors (v4 targets Node 20), and add `permissions: contents: read`.
+- **Small:**
+  - The simulator's percentile index overflows above about 23.8 million games.
+  - A null shape, a null row or an out-of-range category throws `NullReferenceException` or `IndexOutOfRangeException` instead of `ArgumentException`.
