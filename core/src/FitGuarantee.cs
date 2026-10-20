@@ -7,7 +7,11 @@ namespace BlockPuzzle.Core
         None = 0,
         /// <summary>At least one of the three pieces fits somewhere.</summary>
         AtLeastOne = 1,
-        /// <summary>All three can be placed in some order, counting line clears in between.</summary>
+        /// <summary>
+        /// Re-deals until all three can be placed in some order (counting line clears in between), up to
+        /// GeneratorSettings.MaxWholeTrayAttempts times. After that it falls back to AtLeastOne, so a very
+        /// small share of fresh trays can still end a game.
+        /// </summary>
         WholeTray = 2,
     }
 }

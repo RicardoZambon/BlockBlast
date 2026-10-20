@@ -3121,7 +3121,7 @@ Deferred, minor today:
 - **Task 1.9 (playtests):**
   - Re-derive Gentle's weights from the tuned Baseline. Its pieces are no longer smaller on average; it is easier only because of WholeTray and its helpful phase.
   - Decide whether the revive gets its own small-piece band. Today it reuses Mercy, giving 34.5% medium and 4.9% large pieces.
-- **Phase 2 (Daily Puzzle):** store the generator settings name and version in the snapshot, and copy the settings when a game starts, so a Remote Config update can't change a game in progress.
+- **Phase 2 (Daily Puzzle):** store the generator settings name and version, plus a fingerprint of the piece catalog, in the snapshot. A save made with different settings or pieces should then be rejected instead of silently dealing differently. Settings are already copied when a game starts.
 - **Phase 3 (ads):**
   - Document that `gamesCompleted` includes the game that just ended.
   - Make `TryRevive` not spend the revive when the rescue tray can't be placed. That can only happen with a custom catalog.
@@ -3129,3 +3129,30 @@ Deferred, minor today:
 - **Small:**
   - The simulator's percentile index overflows above about 23.8 million games.
   - A null shape, a null row or an out-of-range category throws `NullReferenceException` or `IndexOutOfRangeException` instead of `ArgumentException`.
+
+### PR review
+
+Before merging, PR #1 got a second review: ten independent reviewers, a separate verifier for every finding, and a last pass for gaps. Of its 15 findings, 14 were fixed test-first. Every new test was checked against a code change that breaks the behavior it protects. There are now 101 tests.
+- **Off-board moves:** `TryGetMask` overflowed for coordinates near `int.MaxValue`, so off-board moves were accepted and scored. It now uses an unsigned bounds check.
+- **Settings:**
+  - Undefined `FitGuarantee` values and negative or oversized scoring values are rejected.
+  - A game copies its settings, so later edits can't change it.
+  - `new GeneratorSettings()` is the tuned Baseline.
+  - The score stops at `int.MaxValue` instead of wrapping negative.
+- **Saves:** `FromSnapshot` throws `InvalidSnapshotException` only for a bad save; a settings problem stays an `ArgumentException`. Empty trays and impossible counters are rejected instead of patched.
+- **Tests:**
+  - Golden deals on crowded boards now pin the fallback deals and the rescue tray.
+  - The WholeTray, mercy, revive and save round-trip tests now fail when their behavior breaks.
+- **Docs and `.gitignore`:** WholeTray's fallback is documented, and app builds and signing keys are ignored.
+
+Left open from this review:
+- **Phase 2:** saves don't record the piece catalog (above).
+- **Task 1.8:**
+  - `TraySolver` is an unpruned search. On adversarial boards a WholeTray deal can take about 2.4 ms on desktop, which could cost a frame on a low-end phone. Measure it there, and prune if needed.
+  - Cache the `CanClearLine` filter per deal, and avoid allocating a tray array on every deal.
+- **Small:**
+  - CI doesn't check the simulator's difficulty target.
+  - `--games` is rounded down to a multiple of games per player.
+  - Three more tests are missing: that MaxStreak keeps the best streak, that `MercyAfterQuickLosses = 0` turns mercy off, and a board clear during a streak.
+  - `PieceCatalog.Shapes` exposes its internal array.
+  - Cleanups: profile and bot names are duplicated, the row and column masks are written out by hand in places, and the retry and tray-copy loops are repeated.

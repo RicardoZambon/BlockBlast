@@ -20,6 +20,15 @@ unity/*.csproj
 unity/*.sln
 unity/*.slnx
 
+# App builds and signing keys: never commit these (this repo is public)
+*.apk
+*.aab
+*.ipa
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
 # OS
 .DS_Store
 Thumbs.db

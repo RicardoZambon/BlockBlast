@@ -91,7 +91,7 @@ namespace BlockPuzzle.Core
 
         static bool IsValidWeight(int weight) => weight >= 0 && weight <= MaxWeight;
 
-        /// <summary>Easier: every fresh tray can be placed, more small pieces, longer helpful phase.</summary>
+        /// <summary>Easier: re-deals each fresh tray until all three pieces fit (see FitGuarantee.WholeTray), with a longer helpful phase.</summary>
         public static GeneratorSettings Gentle() => new GeneratorSettings
         {
             Name = "gentle",
