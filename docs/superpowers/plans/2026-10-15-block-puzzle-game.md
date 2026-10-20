@@ -346,9 +346,10 @@ If people don't replay, fix the feel and the piece generator before adding art.
   - one scored attempt per day
   - a day-streak counter stored on the phone
   - a share button that posts a short text result: score, streak and a link
+  - the phone's clock changing, moved here from 2.6: setting the clock back must not replay a day that was already scored
 - [ ] **2.6 Reliable save and resume.**
   - Save after every move.
-  - Handle the app going to the background, incoming calls, the OS killing the app, and the phone's clock changing (which matters for the Daily).
+  - Handle the app going to the background, incoming calls, the OS killing the app, and the phone's clock changing (which matters for the Daily). The clock is handled in 2.5, with the Daily.
 - [ ] **2.7 Layout.**
   - Respect safe areas (notches).
   - Support screen shapes from 4:3 (iPad) to 21:9 (tall Android phones).

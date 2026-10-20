@@ -88,4 +88,19 @@
 
 ## Results
 
-(Filled in by Task 3.)
+Tasks 1–3 were built on 2026-10-20, test-first.
+
+- **Tests:** 86 EditMode and 37 PlayMode tests pass, and the 161 .NET tests are unchanged.
+- **Interruptions:**
+  - Going to the background or losing focus pauses the game, and the player comes back to the pause overlay.
+  - Coming back resumes nothing; only Resume does.
+  - Game over is never paused behind its panel, and a hidden game gets neither message.
+- **Backups:**
+  - Every write after the first keeps the previous file as `save.json.bak` or `settings.json.bak`.
+  - A save that is damaged, from another version, or missing after a kill between the two renames falls back to the one before. That costs one move at most, and the best score survives.
+  - A backup from another version is ignored too.
+
+Decisions made while building:
+- **The tests use the literal `.bak` path,** not `JsonFile.BackupPath`, so they compiled before the backup existed and failed on behaviour, not on a missing method.
+- **The interruption pause sits in `GameController`,** next to the drag cancel that `PointerInput` already did. Pausing cancels the drag again, which does nothing the second time.
+- **Focus loss pauses too,** like going to the background: on Android that's the notification shade or a system dialog.
