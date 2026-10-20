@@ -45,6 +45,23 @@ namespace BlockPuzzle.Game
             if (_booted && Drag != null) Drag.Cancel();
         }
 
+        // A call, another app or the notification shade: the player comes back to the pause overlay, not a running
+        // game. Coming back does nothing; only Resume resumes. A hidden game gets neither message.
+        void OnApplicationPause(bool paused)
+        {
+            if (paused) PauseForInterruption();
+        }
+
+        void OnApplicationFocus(bool focused)
+        {
+            if (!focused) PauseForInterruption();
+        }
+
+        void PauseForInterruption()
+        {
+            if (_booted && !IsPaused && !GameOver.IsShown) PauseGame();
+        }
+
         /// <summary>Builds the game against its own save file. Start calls it with the default path unless something called Boot first.</summary>
         public void Boot(string savePath)
         {

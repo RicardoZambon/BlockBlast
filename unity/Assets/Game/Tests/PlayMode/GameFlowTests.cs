@@ -395,6 +395,58 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator Going_to_the_background_pauses_the_game()
+        {
+            var game = Boot();
+            yield return null;
+
+            game.gameObject.SendMessage("OnApplicationPause", true);
+
+            Assert.IsTrue(game.IsPaused);
+            Assert.IsTrue(game.Pause.IsShown);
+        }
+
+        [UnityTest]
+        public IEnumerator Losing_focus_pauses_the_game()
+        {
+            var game = Boot();
+            yield return null;
+
+            game.gameObject.SendMessage("OnApplicationFocus", false);   // the notification shade, a dialog
+
+            Assert.IsTrue(game.IsPaused);
+        }
+
+        [UnityTest]
+        public IEnumerator Coming_back_stays_paused()
+        {
+            var game = Boot();
+            yield return null;
+            game.gameObject.SendMessage("OnApplicationPause", true);
+
+            game.gameObject.SendMessage("OnApplicationPause", false);
+            game.gameObject.SendMessage("OnApplicationFocus", true);
+            yield return null;
+
+            Assert.IsTrue(game.IsPaused, "only Resume resumes");
+        }
+
+        [UnityTest]
+        public IEnumerator An_interruption_on_game_over_does_not_pause()
+        {
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
+            var game = Boot();
+            yield return null;
+            yield return DragAndRelease(game, 0, PointerFor(game.Layout, PieceCatalog.Standard["i2h"], 0, 1));
+            Assert.IsTrue(game.GameOver.IsShown);
+
+            game.gameObject.SendMessage("OnApplicationPause", true);
+
+            Assert.IsFalse(game.IsPaused);
+            Assert.IsTrue(game.GameOver.IsShown);
+        }
+
+        [UnityTest]
         public IEnumerator The_pause_button_mid_drag_sends_the_piece_back()
         {
             var game = Boot();
