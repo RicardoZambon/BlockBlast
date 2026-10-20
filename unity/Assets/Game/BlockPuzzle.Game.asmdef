@@ -1,0 +1,18 @@
+{
+    "name": "BlockPuzzle.Game",
+    "rootNamespace": "BlockPuzzle.Game",
+    "references": [
+        "BlockPuzzle.Core",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
