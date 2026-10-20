@@ -22,7 +22,7 @@ namespace BlockPuzzle.Game
         BoardView? _board;
         TrayView? _tray;
         Func<GameSession>? _game;
-        Action<PlacementOutcome>? _placed;
+        Action<PlacementOutcome, ulong>? _placed;   // the outcome, and the cells the piece now covers
 
         Vector2 _pressPoint;
         bool _moved;
@@ -36,7 +36,7 @@ namespace BlockPuzzle.Game
         public bool IsDragging => _session.IsDragging;
         public bool IsReturning => _returnSlot >= 0;
 
-        public void Init(BoardLayout layout, BoardView board, TrayView tray, Func<GameSession> game, Action<PlacementOutcome> placed)
+        public void Init(BoardLayout layout, BoardView board, TrayView tray, Func<GameSession> game, Action<PlacementOutcome, ulong> placed)
         {
             _layout = layout;
             _board = board;
@@ -87,10 +87,11 @@ namespace BlockPuzzle.Game
             if (_game == null || _board == null || !IsDragging) return;
             int slot = _session.Slot;
             var game = _game();
+            ulong placedMask = _session.TargetMask;   // TryDrop clears the target
             if (_session.TryDrop(game, out var outcome))
             {
                 _board.Render(game.Board);
-                _placed?.Invoke(outcome);
+                _placed?.Invoke(outcome, placedMask);
                 return;
             }
             _board.Render(game.Board);

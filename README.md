@@ -9,6 +9,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 2b plan](docs/superpowers/plans/2026-10-20-phase-2b-save-and-resume.md): pausing on interruptions, and a backup save
 - [Phase 2c plan](docs/superpowers/plans/2026-10-20-phase-2c-daily-puzzle.md): the Daily Puzzle, with its streak and Share
 - [Phase 2d plan](docs/superpowers/plans/2026-10-20-phase-2d-tutorial.md): the first-time tutorial
+- [Phase 2e plan](docs/superpowers/plans/2026-10-20-phase-2e-feedback.md): visual, sound and haptic feedback
 
 ## Layout
 

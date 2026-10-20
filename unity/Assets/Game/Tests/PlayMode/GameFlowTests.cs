@@ -393,6 +393,117 @@ namespace BlockPuzzle.Game.Tests
             Assert.IsTrue(game.Drag.IsDragging);
         }
 
+        // Row 0 and column 7 each miss only the corner: a dot at (0, 7) clears both at once. (4, 3) stays, so the board
+        // isn't emptied, which would be a board clear with its own praise.
+        static readonly Board TwoLinesAtTheCorner = Board.Parse(
+            "#######.",
+            ".......#",
+            ".......#",
+            ".......#",
+            "...#...#",
+            ".......#",
+            ".......#",
+            ".......#");
+
+        GameController BootWith(SettingsData settings)
+        {
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var save));
+            _controller = new GameObject("Game").AddComponent<GameController>();
+            _controller.Boot(new SaveStore(SavePath), save, new ClassicMode(save), null, settings);
+            return _controller;
+        }
+
+        /// <summary>Drags the dot onto the corner, then releases it in the frame the caller checks, so no effect has run out yet.</summary>
+        static IEnumerator DragDotToTheCorner(GameController game)
+        {
+            Assert.IsTrue(game.Drag.Press(game.Layout.TraySlotCenter(0)));
+            yield return null;
+            game.Drag.Drag(PointerFor(game.Layout, PieceCatalog.Standard["dot"], 0, 7));
+            yield return null;
+        }
+
+        static void ReleaseDot(GameController game) => game.Drag.Release(PointerFor(game.Layout, PieceCatalog.Standard["dot"], 0, 7));
+
+        [UnityTest]
+        public IEnumerator A_two_line_clear_sweeps_bursts_shakes_and_praises()
+        {
+            SavePosition(TestGames.Position(TwoLinesAtTheCorner, "dot", "o2", "i3h"));
+            var game = BootWith(new SettingsData());
+            yield return null;
+            Vector3 home = game.Board.transform.position;
+            yield return DragDotToTheCorner(game);
+
+            ReleaseDot(game);
+
+            Assert.IsTrue(game.Board.IsSquashing);
+            Assert.IsTrue(game.Board.IsSweeping);
+            Assert.IsTrue(game.Feedback.IsShaking);
+            Assert.Greater(game.Feedback.LiveParticles, 0);
+            Assert.AreEqual("Great!", game.Feedback.PraiseText);
+            Assert.AreEqual(Sound.Clear, game.Feedback.LastSound);
+            Assert.AreEqual(Haptic.Medium, game.Feedback.LastHaptic);
+
+            yield return new WaitForSeconds(1.2f);
+            Assert.IsFalse(game.Board.IsSquashing);
+            Assert.IsFalse(game.Board.IsSweeping);
+            Assert.IsFalse(game.Feedback.IsShaking);
+            Assert.AreEqual(0, game.Feedback.LiveParticles);
+            Assert.IsFalse(game.Feedback.PraiseShown);
+            Assert.AreEqual(home, game.Board.transform.position, "the shake settles exactly where it started");
+            Assert.AreEqual(Palette.Empty, game.Board.CellColor(0, 7), "the sweep ends on the board's own colours");
+        }
+
+        [UnityTest]
+        public IEnumerator Reduced_motion_plays_no_squash_shake_or_particles()
+        {
+            SavePosition(TestGames.Position(TwoLinesAtTheCorner, "dot", "o2", "i3h"));
+            var game = BootWith(new SettingsData { ReducedMotion = true });
+            yield return null;
+            yield return DragDotToTheCorner(game);
+
+            ReleaseDot(game);
+
+            Assert.IsFalse(game.Board.IsSquashing);
+            Assert.IsFalse(game.Feedback.IsShaking);
+            Assert.AreEqual(0, game.Feedback.LiveParticles);
+            Assert.IsTrue(game.Board.IsSweeping, "the sweep stays, as a plain fade");
+            Assert.AreEqual("Great!", game.Feedback.PraiseText);
+        }
+
+        [UnityTest]
+        public IEnumerator Sound_and_haptics_off_play_neither()
+        {
+            SavePosition(TestGames.Position(TwoLinesAtTheCorner, "dot", "o2", "i3h"));
+            var game = BootWith(new SettingsData { Sound = false, Haptics = false });
+            yield return null;
+            yield return DragDotToTheCorner(game);
+
+            ReleaseDot(game);
+
+            Assert.AreEqual(0, game.Feedback.SoundsPlayed);
+            Assert.AreEqual(Haptic.None, game.Feedback.LastHaptic);
+        }
+
+        [UnityTest]
+        public IEnumerator The_streak_shows_from_two()
+        {
+            var snapshot = TestGames.Position(TwoLinesAtTheCorner, "dot", "o2", "i3h").ToSnapshot();
+            snapshot.Placements = 3;
+            snapshot.Score = 30;
+            snapshot.LinesCleared = 1;
+            snapshot.Streak = 1;
+            snapshot.MaxStreak = 1;
+            new SaveStore(SavePath).Write(new SaveData { HasGame = true, Game = snapshot });
+            var game = Boot();
+            yield return null;
+            Assert.AreEqual("", game.Hud.StreakText, "a streak of one isn't shown");
+            yield return DragDotToTheCorner(game);
+
+            ReleaseDot(game);
+
+            Assert.AreEqual("Streak 2", game.Hud.StreakText);
+        }
+
         [UnityTest]
         public IEnumerator Skipping_the_tutorial_saves_that_it_is_done()
         {
