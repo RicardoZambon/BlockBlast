@@ -17,6 +17,11 @@ namespace BlockPuzzle.Core
         readonly PieceShape[][] _byCategory;
         readonly List<PieceShape>[] _allowed; // scratch lists, reused on every pick
         readonly PieceShape _smallest;
+        // CanClearLine for every shape (by category, like _byCategory) on _canClearLineBoard. The helpful bias asks
+        // on every slot and every WholeTray re-deal, and the answers only change with the board.
+        readonly bool[][] _canClearLine;
+        Board _canClearLineBoard;
+        bool _canClearLineKnown;
 
         public PieceGenerator(PieceCatalog catalog, GeneratorSettings settings, Pcg32 rng)
         {
@@ -42,7 +47,12 @@ namespace BlockPuzzle.Core
             }
 
             _byCategory = new PieceShape[CategoryCount][];
-            for (int c = 0; c < CategoryCount; c++) _byCategory[c] = lists[c].ToArray();
+            _canClearLine = new bool[CategoryCount][];
+            for (int c = 0; c < CategoryCount; c++)
+            {
+                _byCategory[c] = lists[c].ToArray();
+                _canClearLine[c] = new bool[_byCategory[c].Length];
+            }
         }
 
         /// <summary>The random generator, so a session can save and restore its exact position.</summary>
@@ -156,9 +166,10 @@ namespace BlockPuzzle.Core
                 allowed.Clear();
                 int weight = band.WeightOf((PieceCategory)c);
                 if (weight <= 0) continue;
-                foreach (var shape in _byCategory[c])
+                var shapes = _byCategory[c];
+                for (int i = 0; i < shapes.Length; i++)
                 {
-                    if (Allows(filter, shape, board)) allowed.Add(shape);
+                    if (Allows(filter, c, i, board)) allowed.Add(shapes[i]);
                 }
                 if (allowed.Count > 0) total += weight;
             }
@@ -176,14 +187,29 @@ namespace BlockPuzzle.Core
             return null;
         }
 
-        static bool Allows(Filter filter, PieceShape shape, Board board)
+        bool Allows(Filter filter, int category, int index, Board board)
         {
             switch (filter)
             {
-                case Filter.FitsAnywhere: return shape.FitsAnywhere(board);
-                case Filter.CanClearLine: return shape.CanClearLine(board);
+                case Filter.FitsAnywhere: return _byCategory[category][index].FitsAnywhere(board);
+                case Filter.CanClearLine: return CanClearLine(category, index, board);
                 default: return true;
             }
+        }
+
+        bool CanClearLine(int category, int index, Board board)
+        {
+            if (!_canClearLineKnown || _canClearLineBoard != board)
+            {
+                for (int c = 0; c < CategoryCount; c++)
+                {
+                    var shapes = _byCategory[c];
+                    for (int i = 0; i < shapes.Length; i++) _canClearLine[c][i] = shapes[i].CanClearLine(board);
+                }
+                _canClearLineBoard = board;
+                _canClearLineKnown = true;
+            }
+            return _canClearLine[category][index];
         }
     }
 }
