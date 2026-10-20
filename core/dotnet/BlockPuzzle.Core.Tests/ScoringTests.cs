@@ -79,6 +79,28 @@ public class ScoringTests
     }
 
     [Fact]
+    public void The_best_streak_is_kept_after_the_streak_resets()
+    {
+        var state = default(ScoreState);
+        for (int i = 0; i < 3; i++) state = Scoring.Apply(Defaults, state, 1, 1, false, out _);   // streak 3
+        for (int i = 0; i < 3; i++) state = Scoring.Apply(Defaults, state, 1, 0, false, out _);   // three misses reset it
+
+        Assert.Equal(0, state.Streak);
+        Assert.Equal(3, state.MaxStreak);
+    }
+
+    [Fact]
+    public void A_board_clear_during_a_streak_gets_the_flat_bonus()
+    {
+        var onStreak = new ScoreState(score: 0, streak: 2, missesSinceClear: 0, maxStreak: 2);
+
+        Scoring.Apply(Defaults, onStreak, cellsPlaced: 1, lines: 1, boardCleared: true, out int points);
+
+        // Streak 3 doubles the line points (10 becomes 20); the +300 board-clear bonus isn't multiplied.
+        Assert.Equal(1 + 20 + 300, points);
+    }
+
+    [Fact]
     public void Clearing_the_whole_board_adds_the_bonus()
     {
         Scoring.Apply(Defaults, default, 1, 1, boardCleared: true, out int points);
