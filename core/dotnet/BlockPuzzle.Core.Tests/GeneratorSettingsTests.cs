@@ -52,4 +52,25 @@ public class GeneratorSettingsTests
         Assert.Throws<ArgumentException>(() => new GeneratorSettings { Bands = new[] { new DifficultyBand(0, 0, 0, 0, 0) } }.Validate());
         Assert.Throws<ArgumentException>(() => new GeneratorSettings { HelpfulChancePercent = 101 }.Validate());
     }
+
+    [Fact]
+    public void Validate_rejects_a_missing_band()
+    {
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { Bands = new DifficultyBand[] { null! } }.Validate());
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { Bands = new[] { new DifficultyBand(0, 0, 1, 1, 1), null! } }.Validate());
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { Mercy = null! }.Validate());
+    }
+
+    [Fact]
+    public void Validate_rejects_weights_too_large_to_add_up()
+    {
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { Bands = new[] { new DifficultyBand(0, 0, int.MaxValue, 1, 0) } }.Validate());
+    }
+
+    [Fact]
+    public void Validate_caps_the_whole_tray_attempts()
+    {
+        Assert.Throws<ArgumentException>(() => new GeneratorSettings { MaxWholeTrayAttempts = 101 }.Validate());
+        new GeneratorSettings { MaxWholeTrayAttempts = 100 }.Validate();
+    }
 }

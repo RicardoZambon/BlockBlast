@@ -28,6 +28,11 @@ namespace BlockPuzzle.Core
         /// <summary>Re-deal attempts for WholeTray before falling back to AtLeastOne.</summary>
         public int MaxWholeTrayAttempts = 20;
 
+        /// <summary>Upper limit for any single weight, so a band's weights can always be added up safely.</summary>
+        public const int MaxWeight = 1_000_000;
+        /// <summary>Upper limit for MaxWholeTrayAttempts, so a typo can't stall a deal.</summary>
+        public const int MaxWholeTrayAttemptsLimit = 100;
+
         public DifficultyBand BandFor(int placements)
         {
             DifficultyBand band = Bands[0];
@@ -39,27 +44,31 @@ namespace BlockPuzzle.Core
         public void Validate()
         {
             if (Bands == null || Bands.Length == 0) throw new ArgumentException("At least one difficulty band is required.");
-            if (Bands[0].FromPlacement != 0) throw new ArgumentException("The first difficulty band must start at placement 0.");
             for (int i = 0; i < Bands.Length; i++)
             {
                 ValidateBand(Bands[i], $"Bands[{i}]");
+                if (i == 0 && Bands[0].FromPlacement != 0)
+                    throw new ArgumentException("The first difficulty band must start at placement 0.");
                 if (i > 0 && Bands[i].FromPlacement <= Bands[i - 1].FromPlacement)
                     throw new ArgumentException("Difficulty bands must be sorted by FromPlacement.");
             }
             ValidateBand(Mercy, nameof(Mercy));
             if (HelpfulChancePercent < 0 || HelpfulChancePercent > 100)
                 throw new ArgumentException("HelpfulChancePercent must be between 0 and 100.");
-            if (MaxWholeTrayAttempts < 1) throw new ArgumentException("MaxWholeTrayAttempts must be at least 1.");
+            if (MaxWholeTrayAttempts < 1 || MaxWholeTrayAttempts > MaxWholeTrayAttemptsLimit)
+                throw new ArgumentException($"MaxWholeTrayAttempts must be between 1 and {MaxWholeTrayAttemptsLimit}.");
         }
 
         static void ValidateBand(DifficultyBand band, string name)
         {
             if (band == null) throw new ArgumentException($"{name} is missing.");
-            if (band.Tiny < 0 || band.Small < 0 || band.Medium < 0 || band.Large < 0)
-                throw new ArgumentException($"{name} has a negative weight.");
+            if (!IsValidWeight(band.Tiny) || !IsValidWeight(band.Small) || !IsValidWeight(band.Medium) || !IsValidWeight(band.Large))
+                throw new ArgumentException($"{name} weights must be between 0 and {MaxWeight}.");
             if (band.Tiny + band.Small + band.Medium + band.Large == 0)
                 throw new ArgumentException($"{name} has no positive weight.");
         }
+
+        static bool IsValidWeight(int weight) => weight >= 0 && weight <= MaxWeight;
 
         /// <summary>Easier: every fresh tray can be placed, more small pieces, longer helpful phase.</summary>
         public static GeneratorSettings Gentle() => new GeneratorSettings
