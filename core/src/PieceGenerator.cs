@@ -58,11 +58,8 @@ namespace BlockPuzzle.Core
 
             if (_settings.FitGuarantee == FitGuarantee.WholeTray)
             {
-                for (int attempt = 0; attempt < _settings.MaxWholeTrayAttempts; attempt++)
-                {
-                    var tray = DealRaw(board, band, helpful);
-                    if (TraySolver.CanPlaceAll(board, tray)) return tray;
-                }
+                var placeable = DealPlaceable(board, band, helpful);
+                if (placeable != null) return placeable;
             }
 
             var dealt = DealRaw(board, band, helpful);
@@ -72,14 +69,20 @@ namespace BlockPuzzle.Core
         /// <summary>The rewarded revive: small pieces that can all be placed on this board.</summary>
         public PieceShape[] DealRescue(Board board)
         {
-            for (int attempt = 0; attempt < _settings.MaxWholeTrayAttempts; attempt++)
-            {
-                var tray = DealRaw(board, _settings.Mercy, helpful: true);
-                if (TraySolver.CanPlaceAll(board, tray)) return tray;
-            }
             // The standard catalog's smallest piece is one cell, and a board always has an empty cell
             // after a placement (a full board would have cleared), so three of them always fit.
-            return new[] { _smallest, _smallest, _smallest };
+            return DealPlaceable(board, _settings.Mercy, helpful: true) ?? new[] { _smallest, _smallest, _smallest };
+        }
+
+        /// <summary>Deals up to MaxWholeTrayAttempts trays; the first whose pieces can all be placed, or null.</summary>
+        PieceShape[]? DealPlaceable(Board board, DifficultyBand band, bool helpful)
+        {
+            for (int attempt = 0; attempt < _settings.MaxWholeTrayAttempts; attempt++)
+            {
+                var tray = DealRaw(board, band, helpful);
+                if (TraySolver.CanPlaceAll(board, tray)) return tray;
+            }
+            return null;
         }
 
         PieceShape[] DealRaw(Board board, DifficultyBand band, bool helpful)
