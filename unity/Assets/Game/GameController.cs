@@ -7,13 +7,16 @@ namespace BlockPuzzle.Game
 {
     /// <summary>
     /// The game screen: builds every view in code, resumes the saved game or starts a new one, saves after every
-    /// placement, pauses, and shows game over with Play again and Home. It asks for Home through HomeRequested and never
-    /// navigates itself. Everything it creates is a child of its own object.
+    /// placement, pauses, and shows game over with Home. Its GameMode decides which game it plays and how it is recorded:
+    /// Classic offers Play again, the Daily offers Share. It asks for Home through HomeRequested and never navigates
+    /// itself. Everything it creates is a child of its own object.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
         SaveStore? _store;
         SaveData _save = new SaveData();
+        GameMode _mode = null!;
+        Action<string>? _share;
         GameSession? _game;
         PointerInput? _input;
         bool _booted;
@@ -70,8 +73,18 @@ namespace BlockPuzzle.Game
             Boot(store, store.TryRead(out var saved) ? saved : new SaveData());
         }
 
-        /// <summary>Builds the game against a store and the data read from it. App calls this, so both share one SaveData.</summary>
+        /// <summary>Builds a Classic game against a store and the data read from it.</summary>
         public void Boot(SaveStore store, SaveData save)
+        {
+            if (_booted) return;
+            Boot(store, save, new ClassicMode(save));
+        }
+
+        /// <summary>
+        /// Builds the game against a store and the data read from it; App calls this, so every screen shares one SaveData.
+        /// share posts the Daily's result (DailyShare.Share unless a test gives its own).
+        /// </summary>
+        public void Boot(SaveStore store, SaveData save, GameMode mode, Action<string>? share = null)
         {
             if (_booted) return;
             var camera = Camera.main;
@@ -80,6 +93,8 @@ namespace BlockPuzzle.Game
             Application.targetFrameRate = 60;
             _store = store;
             _save = save;
+            _mode = mode;
+            _share = share;
 
             BannerHeight = BannerWorldHeight(camera);
             Layout = new BoardLayout(SafeWorldRect(camera), BannerHeight);
@@ -93,7 +108,8 @@ namespace BlockPuzzle.Game
             Hud = HudView.Create(canvas, ScreenFraction(camera, Layout.BoardTopLeft.y), ScreenFraction(camera, Layout.ScoreBandTop), TogglePause);
             DebugOverlay.CreateIfDevelopment(SafeAreaPanel.Create(canvas));   // development builds only
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
-            GameOver = GameOverView.Create(canvas, PlayAgain, RequestHome);
+            GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? PlayAgain : (Action?)null,
+                mode.CanShare ? ShareResult : (Action?)null, RequestHome);
             GameOver.Hide();
             UiFactory.EnsureEventSystem(transform);   // App already has one; a GameController on its own needs its own
 
@@ -102,12 +118,7 @@ namespace BlockPuzzle.Game
             _input = gameObject.AddComponent<PointerInput>();
             _input.Init(camera, Drag);
 
-            // A damaged save can hold impossible counters; the GameSession constructor would refuse them on every launch.
-            _save.NextGameIndex = Math.Max(0, _save.NextGameIndex);
-            _save.NextRecentQuickLosses = Math.Max(0, _save.NextRecentQuickLosses);
-            _save.BestScore = Math.Max(0, _save.BestScore);
-
-            _game = _save.HasGame ? Resume(_save.Game) : null;
+            _game = mode.Resume();
             if (_game == null)
             {
                 StartNextGame();
@@ -156,30 +167,9 @@ namespace BlockPuzzle.Game
 
         void StartNextGame()
         {
-            _game = new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
-                _save.NextGameIndex, _save.NextRecentQuickLosses);
+            _game = _mode.StartNew();
             RenderAll();
             SaveGameInProgress();
-        }
-
-        /// <summary>Whether a save holds a game that resumes and isn't over: what Home offers as Continue.</summary>
-        public static bool CanResume(SaveData save)
-        {
-            if (!save.HasGame) return false;
-            var game = Resume(save.Game);
-            return game != null && !game.IsGameOver;
-        }
-
-        static GameSession? Resume(GameSnapshot snapshot)
-        {
-            try
-            {
-                return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings());
-            }
-            catch (InvalidSnapshotException)
-            {
-                return null;   // a save we can't resume: start a new game, keeping the counters
-            }
         }
 
         void OnPlaced(PlacementOutcome outcome)
@@ -189,25 +179,23 @@ namespace BlockPuzzle.Game
             else SaveGameInProgress();
         }
 
-        /// <summary>Shows game over, then saves what the next game starts with.</summary>
+        /// <summary>Records the finished game in the mode, shows game over, then saves.</summary>
         void FinishGame()
         {
             var game = Game;
-            if (game.Score > _save.BestScore) _save.BestScore = game.Score;
-            GameOver.Show(game.Score, _save.BestScore);
-            _save.HasGame = false;
-            _save.NextGameIndex = game.GameIndex + 1;
-            _save.NextRecentQuickLosses = game.NextRecentQuickLosses;
+            _mode.Finished(game);
+            GameOver.Show(game.Score, _mode.Best, _mode.Streak);
             Save();
         }
 
         void SaveGameInProgress()
         {
-            if (Game.Score > _save.BestScore) _save.BestScore = Game.Score;
-            _save.HasGame = true;
-            _save.Game = Game.ToSnapshot();
+            _mode.InProgress(Game);
             Save();
         }
+
+        /// <summary>The Daily's Share button: posts the finished game's result.</summary>
+        void ShareResult() => (_share ?? DailyShare.Share)(_mode.ShareText(Game));
 
         /// <summary>A failed save (full storage, a file another app holds) must not stop the game; the next move tries again.</summary>
         void Save()
@@ -227,7 +215,7 @@ namespace BlockPuzzle.Game
             var game = Game;
             Board.Render(game.Board);
             Tray.Render(game);
-            Hud.Show(game.Score, Math.Max(game.Score, _save.BestScore));
+            Hud.Show(game.Score, Math.Max(game.Score, _mode.Best));
         }
 
         T Child<T>(string name) where T : Component

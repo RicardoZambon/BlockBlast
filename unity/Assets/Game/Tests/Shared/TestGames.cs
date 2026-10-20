@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using BlockPuzzle.Core;
 
 namespace BlockPuzzle.Game.Tests
@@ -18,6 +19,8 @@ namespace BlockPuzzle.Game.Tests
             };
             return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings());
         }
+
+        public static string TrayIds(GameSession game) => string.Join(",", game.Tray.ToArray().Select(p => p?.Id ?? "-"));
 
         /// <summary>Saves a game in progress in the given position, so the next boot resumes it instead of dealing at random.</summary>
         public static void Save(string savePath, GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0)

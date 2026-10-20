@@ -61,7 +61,6 @@ namespace BlockPuzzle.Game.Tests
             yield return null;
         }
 
-        static string TrayIds(GameSession game) => string.Join(",", game.Tray.ToArray().Select(p => p?.Id ?? "-"));
 
         [UnityTest]
         public IEnumerator A_new_game_shows_three_pieces_and_no_score()
@@ -204,7 +203,7 @@ namespace BlockPuzzle.Game.Tests
             var shape = first.Game.GetTrayPiece(0)!;
             yield return DragAndRelease(first, 0, PointerFor(first.Layout, shape, 0, 0));
             var board = first.Game.Board;
-            string tray = TrayIds(first.Game);
+            string tray = TestGames.TrayIds(first.Game);
             int score = first.Game.Score;
 
             Object.DestroyImmediate(first.gameObject);   // no quit callbacks, like the system killing the app
@@ -212,7 +211,7 @@ namespace BlockPuzzle.Game.Tests
             yield return null;
 
             Assert.AreEqual(board, second.Game.Board);
-            Assert.AreEqual(tray, TrayIds(second.Game));
+            Assert.AreEqual(tray, TestGames.TrayIds(second.Game));
             Assert.AreEqual(score, second.Game.Score);
         }
 

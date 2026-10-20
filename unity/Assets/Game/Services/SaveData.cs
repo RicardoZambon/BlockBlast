@@ -24,5 +24,8 @@ namespace BlockPuzzle.Game
         public int NextRecentQuickLosses;
 
         public int BestScore;
+
+        /// <summary>The Daily Puzzle, kept apart from Classic: a save from before the Daily loads with an empty one.</summary>
+        public DailySave Daily = new DailySave();
     }
 }

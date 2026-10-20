@@ -132,6 +132,21 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [Test]
+        public void A_daily_game_over_offers_share_and_no_play_again()
+        {
+            int shared = 0;
+            var gameOver = GameOverView.Create(Canvas(), "Daily done", playAgain: null, share: () => shared++, home: () => { });
+
+            gameOver.Show(1240, 1500, streak: 3);
+            gameOver.PressShare();
+
+            Assert.AreEqual(1, shared);
+            Assert.IsFalse(gameOver.OffersPlayAgain);
+            Assert.IsTrue(gameOver.OffersShare);
+            StringAssert.Contains("3-day streak", gameOver.ScoresText);
+        }
+
+        [Test]
         public void The_hud_pause_button_calls_pause_and_the_score_shows()
         {
             int paused = 0;

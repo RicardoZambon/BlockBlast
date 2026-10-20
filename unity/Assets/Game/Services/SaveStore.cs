@@ -29,6 +29,9 @@ namespace BlockPuzzle.Game
         {
             if (!JsonFile.TryReadOrBackup(_path, read => read.Version == SaveData.CurrentVersion, out data)) return false;
             if (data.Game == null) data.Game = new GameSnapshot();
+            if (data.Daily == null) data.Daily = new DailySave();
+            if (data.Daily.Game == null) data.Daily.Game = new GameSnapshot();
+            if (data.Daily.Record == null) data.Daily.Record = new DailyRecord();
             return true;
         }
     }
