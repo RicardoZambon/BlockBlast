@@ -33,6 +33,19 @@ namespace BlockPuzzle.Core
 
         public bool Fits(ulong pieceMask) => (Cells & pieceMask) == 0;
 
+        /// <summary>True if a row or column is full. Play never leaves one behind, so a saved board with one is corrupt.</summary>
+        public bool HasFullLine
+        {
+            get
+            {
+                foreach (ulong line in LineMasks)
+                {
+                    if ((Cells & line) == line) return true;
+                }
+                return false;
+            }
+        }
+
         /// <summary>Adds the piece, then clears every full row and column at the same time.</summary>
         public PlaceResult Place(ulong pieceMask)
         {

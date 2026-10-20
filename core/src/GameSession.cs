@@ -132,28 +132,47 @@ namespace BlockPuzzle.Core
         }
 
         /// <summary>Resumes a saved game exactly, including the pieces it will deal next.</summary>
+        /// <exception cref="ArgumentException">
+        /// The snapshot is from another version, is corrupt (a negative counter, a full row or column, a broken
+        /// tray or generator state) or names a piece the catalog doesn't have. Callers can catch this one type
+        /// and start a new game instead.
+        /// </exception>
         public static GameSession FromSnapshot(GameSnapshot snapshot, PieceCatalog catalog, GeneratorSettings generatorSettings, ScoringSettings scoringSettings)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             if (snapshot.Version != GameSnapshot.CurrentVersion)
-                throw new NotSupportedException($"Snapshot version {snapshot.Version} is not supported.");
+                throw new ArgumentException($"Snapshot version {snapshot.Version} is not supported.", nameof(snapshot));
             if (snapshot.Tray == null || snapshot.Tray.Length != PieceGenerator.TraySize)
                 throw new ArgumentException("The snapshot must have three tray slots.", nameof(snapshot));
+            if (snapshot.Score < 0 || snapshot.Streak < 0 || snapshot.MissesSinceClear < 0 || snapshot.MaxStreak < 0 ||
+                snapshot.Placements < 0 || snapshot.LinesCleared < 0 || snapshot.GameIndex < 0 || snapshot.RecentQuickLosses < 0)
+                throw new ArgumentException("The snapshot has a negative counter.", nameof(snapshot));
+
+            var board = new Board(snapshot.Board);
+            if (board.HasFullLine)
+                throw new ArgumentException("The snapshot's board has a full row or column, which play never leaves behind.", nameof(snapshot));
+
+            var tray = new PieceShape?[PieceGenerator.TraySize];
+            for (int i = 0; i < tray.Length; i++)
+            {
+                string id = snapshot.Tray[i];
+                if (string.IsNullOrEmpty(id)) continue;
+                if (!catalog.TryGet(id, out var shape))
+                    throw new ArgumentException($"The snapshot names an unknown piece '{id}'.", nameof(snapshot));
+                tray[i] = shape;
+            }
 
             var rng = Pcg32.FromState(snapshot.RngState, snapshot.RngIncrement);
             var session = new GameSession(catalog, generatorSettings, scoringSettings, rng, snapshot.GameIndex, snapshot.RecentQuickLosses)
             {
-                Board = new Board(snapshot.Board),
+                Board = board,
                 Placements = snapshot.Placements,
                 LinesCleared = snapshot.LinesCleared,
                 Revived = snapshot.Revived,
             };
             session._score = new ScoreState(snapshot.Score, snapshot.Streak, snapshot.MissesSinceClear, snapshot.MaxStreak);
-            for (int i = 0; i < session._tray.Length; i++)
-            {
-                string id = snapshot.Tray[i];
-                session._tray[i] = string.IsNullOrEmpty(id) ? null : catalog[id];
-            }
+            for (int i = 0; i < tray.Length; i++) session._tray[i] = tray[i];
             if (session.TrayIsEmpty()) session.DealTray(); // a saved game always has a piece; recover if not
             session.UpdateGameOver();
             return session;

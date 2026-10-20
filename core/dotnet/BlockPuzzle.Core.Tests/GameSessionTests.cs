@@ -26,6 +26,77 @@ public class GameSessionTests
 
     static string TrayIds(GameSession game) => string.Join(",", game.Tray.ToArray().Select(p => p?.Id ?? "-"));
 
+    static GameSnapshot SavedGame() => NewGame(seed: 7).ToSnapshot();
+
+    static void AssertRejected(GameSnapshot snapshot) =>
+        Assert.Throws<ArgumentException>(() =>
+            GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings()));
+
+    [Fact]
+    public void A_snapshot_naming_an_unknown_piece_is_rejected()
+    {
+        var snapshot = SavedGame();
+        snapshot.Tray[0] = "nope";
+
+        AssertRejected(snapshot);
+    }
+
+    [Fact]
+    public void A_snapshot_from_another_version_is_rejected()
+    {
+        var snapshot = SavedGame();
+        snapshot.Version = GameSnapshot.CurrentVersion + 1;
+
+        AssertRejected(snapshot);
+    }
+
+    [Fact]
+    public void A_snapshot_with_a_negative_counter_is_rejected()
+    {
+        var corruptions = new Action<GameSnapshot>[]
+        {
+            s => s.Score = -1,
+            s => s.Streak = -10,
+            s => s.MissesSinceClear = -1,
+            s => s.MaxStreak = -1,
+            s => s.Placements = -1,
+            s => s.LinesCleared = -1,
+            s => s.GameIndex = -1,
+            s => s.RecentQuickLosses = -1,
+        };
+
+        foreach (var corrupt in corruptions)
+        {
+            var snapshot = SavedGame();
+            corrupt(snapshot);
+            AssertRejected(snapshot);
+        }
+    }
+
+    [Fact]
+    public void A_snapshot_with_a_full_row_or_column_is_rejected()
+    {
+        var fullRow = SavedGame();
+        fullRow.Board = 0xFFUL;
+        AssertRejected(fullRow);
+
+        var fullColumn = SavedGame();
+        fullColumn.Board = 0x0101010101010101UL;
+        AssertRejected(fullColumn);
+    }
+
+    [Fact]
+    public void A_snapshot_with_a_broken_tray_or_generator_state_is_rejected()
+    {
+        var shortTray = SavedGame();
+        shortTray.Tray = new[] { "dot" };
+        AssertRejected(shortTray);
+
+        var evenIncrement = SavedGame();
+        evenIncrement.RngIncrement = 0;
+        AssertRejected(evenIncrement);
+    }
+
     [Fact]
     public void A_new_game_starts_empty_with_three_pieces()
     {

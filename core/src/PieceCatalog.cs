@@ -5,7 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace BlockPuzzle.Core
 {
-    /// <summary>The set of shapes the generator can deal.</summary>
+    /// <summary>
+    /// The set of shapes the generator can deal. Shape ids are saved in GameSnapshot, so never rename
+    /// or reuse an id once a version has shipped.
+    /// </summary>
     public sealed class PieceCatalog
     {
         readonly PieceShape[] _shapes;

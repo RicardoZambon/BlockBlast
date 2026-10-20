@@ -126,6 +126,14 @@ public class BoardTests
     }
 
     [Fact]
+    public void HasFullLine_detects_a_full_row_or_column()
+    {
+        Assert.False(TestBoards.Checkerboard.HasFullLine);
+        Assert.True(new Board(0xFFUL).HasFullLine);                        // row 0
+        Assert.True(new Board(0x0101010101010101UL << 5).HasFullLine);     // column 5
+    }
+
+    [Fact]
     public void Clearing_every_filled_cell_reports_a_board_clear()
     {
         var board = Board.Parse(
