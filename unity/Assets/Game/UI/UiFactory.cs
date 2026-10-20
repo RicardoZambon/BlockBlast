@@ -103,8 +103,9 @@ namespace BlockPuzzle.Game
             button.onClick.AddListener(() => onClick());
             // One line that shrinks to fit: the label area is too short for a second line, so a long label gets smaller.
             var text = FittedText(Stretch(rect, "Label"), 64, Color.white);
-            text.rectTransform.offsetMin = new Vector2(24, 40);
-            text.rectTransform.offsetMax = new Vector2(-24, -40);
+            float padding = size.y * 0.23f;
+            text.rectTransform.offsetMin = new Vector2(24, padding);
+            text.rectTransform.offsetMax = new Vector2(-24, -padding);
             text.text = label;
             return button;
         }

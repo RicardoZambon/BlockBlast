@@ -24,6 +24,16 @@ namespace BlockPuzzle.Game
         /// <summary>Raised by Home on the pause overlay and on game over.</summary>
         public event Action? HomeRequested;
 
+        /// <summary>Raised when a guided mode, the tutorial, ends after its last step or on Skip.</summary>
+        public event Action? Completed;
+
+        /// <summary>The move the player is guided to make next, or null for free play.</summary>
+        public Guide? CurrentGuide => _booted ? _mode.CurrentGuide : null;
+
+        /// <summary>The tutorial's hint and Skip, and its hand; null outside a guided mode.</summary>
+        public TutorialHintView? Hint { get; private set; }
+        public HandMarker? Hand { get; private set; }
+
         public GameSession Game => _game ?? throw new InvalidOperationException("Call Boot first.");
         public BoardLayout Layout { get; private set; }
         public BoardView Board { get; private set; } = null!;
@@ -106,7 +116,9 @@ namespace BlockPuzzle.Game
             // The HUD sits exactly over the score band the layout reserves, which is already inside the safe area.
             var canvas = UiFactory.Canvas(transform, "Canvas");
             Hud = HudView.Create(canvas, ScreenFraction(camera, Layout.BoardTopLeft.y), ScreenFraction(camera, Layout.ScoreBandTop), TogglePause);
-            DebugOverlay.CreateIfDevelopment(SafeAreaPanel.Create(canvas));   // development builds only
+            var safeArea = SafeAreaPanel.Create(canvas);
+            DebugOverlay.CreateIfDevelopment(safeArea);   // development builds only
+            if (mode.CurrentGuide != null) Hint = TutorialHintView.Create(safeArea, SkipGuided);
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
             GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? PlayAgain : (Action?)null,
                 mode.CanShare ? ShareResult : (Action?)null, RequestHome);
@@ -117,15 +129,48 @@ namespace BlockPuzzle.Game
             Drag.Init(Layout, Board, Tray, () => Game, OnPlaced);
             _input = gameObject.AddComponent<PointerInput>();
             _input.Init(camera, Drag);
+            if (mode.CurrentGuide != null) Hand = HandMarker.Create(transform, Layout.CellSize, () => Drag.IsDragging || Drag.IsReturning || IsPaused);
 
             _game = mode.Resume();
             if (_game == null)
             {
                 StartNextGame();
+            }
+            else
+            {
+                RenderAll();
+                if (_game.IsGameOver) FinishGame();   // a save made on the last move, before the game-over save
+            }
+            ApplyGuide();
+        }
+
+        /// <summary>Points the drag, the hint and the hand at the guided move, or lets pieces land anywhere when there is none.</summary>
+        void ApplyGuide()
+        {
+            var guide = _mode.CurrentGuide;
+            if (guide == null)
+            {
+                Drag.SetGuide(-1, -1);
                 return;
             }
-            RenderAll();
-            if (_game.IsGameOver) FinishGame();   // a save made on the last move, before the game-over save
+            var g = guide.Value;
+            Drag.SetGuide(g.Row, g.Col);
+            if (Hint != null) Hint.Show(g.Hint);
+            var shape = Game.GetTrayPiece(g.Slot);
+            if (Hand != null && shape != null) Hand.Point(Layout.TraySlotCenter(g.Slot), Layout.PointerFor(g.Row, g.Col, shape.Width, shape.Height));
+        }
+
+        void SkipGuided()
+        {
+            _mode.Skip();
+            CompleteGuided();
+        }
+
+        void CompleteGuided()
+        {
+            if (Hand != null) Hand.Hide();
+            Save();   // the tutorial marked itself done in the save data
+            Completed?.Invoke();
         }
 
         /// <summary>Starts the next game; the Play again button calls this.</summary>
@@ -174,6 +219,20 @@ namespace BlockPuzzle.Game
 
         void OnPlaced(PlacementOutcome outcome)
         {
+            if (_mode.CurrentGuide != null)
+            {
+                // A guided move. The next step's game replaces the tray the engine just dealt before anything shows it.
+                var next = _mode.NextStep(Game);
+                if (next == null)
+                {
+                    CompleteGuided();
+                    return;
+                }
+                _game = next;
+                RenderAll();
+                ApplyGuide();
+                return;
+            }
             RenderAll();
             if (Game.IsGameOver) FinishGame();
             else SaveGameInProgress();

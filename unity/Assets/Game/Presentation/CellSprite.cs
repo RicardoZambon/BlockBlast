@@ -20,5 +20,33 @@ namespace BlockPuzzle.Game
                 return _square;
             }
         }
+
+        static Sprite? _circle;
+
+        /// <summary>A white disc one unit across, with a one-pixel soft edge: the tutorial's hand until there is art.</summary>
+        public static Sprite Circle
+        {
+            get
+            {
+                if (_circle != null) return _circle;
+                const int size = 64;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+                var pixels = new Color32[size * size];
+                float radius = size / 2f;
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x + 0.5f - radius, dy = y + 0.5f - radius;
+                        float edge = Mathf.Clamp01(radius - Mathf.Sqrt(dx * dx + dy * dy));
+                        pixels[y * size + x] = new Color32(255, 255, 255, (byte)(edge * 255));
+                    }
+                }
+                texture.SetPixels32(pixels);
+                texture.Apply(false, makeNoLongerReadable: true);
+                _circle = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+                return _circle;
+            }
+        }
     }
 }
