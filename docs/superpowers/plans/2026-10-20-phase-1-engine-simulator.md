@@ -3213,4 +3213,4 @@ Still open for Task 1.8 after the engine prep. The [Task 1.8 plan](2026-10-20-ta
 - Done: check that `JsonUtility` saves and loads the 64-bit snapshot fields exactly. It does.
 - Done: run the golden tests in EditMode. They match .NET.
 - Done: commit the `.meta` files Unity generates in `core/src`.
-- Still open, because it needs the phone: measure `TraySolver` on a low-end Android phone, and prune it if needed. The development build's Bench button times it.
+- Moved to the master plan's task 4.2, so it doesn't hold up Phase 2: measure `TraySolver` on a low-end Android phone, and prune it if needed. The development build's Bench button times it.
