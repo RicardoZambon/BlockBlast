@@ -147,4 +147,34 @@
 
 ## Results
 
-(Filled in by Task 4.)
+Tasks 1–4 were built on 2026-10-20, test-first.
+
+- **Tests:** 91 EditMode and 42 PlayMode tests pass, and 173 .NET tests (136 core, 37 simulator). That includes 12 new Daily tests in the engine.
+- **Golden values:**
+  - 2026-10-20 is day 20746. Its seed is 4023608590332759023, and its first tray is `c3d,t4a,c3a`.
+  - .NET, Unity's EditMode tests and the app's PlayMode tests all check this tray.
+  - A different salt was checked and fails both golden tests.
+- **The Daily in the app:**
+  - Home's Daily button reads Daily (or the streak), continue, or done. It's disabled once the day is played or the clock went back.
+  - The Daily's game over has Share instead of Play again, and shows the streak.
+  - Classic and the Daily keep separate games and bests.
+- **Android:** the development APK builds with the share code: 64 MB, under the 80 MB limit.
+
+Decisions made while building:
+- **Tasks 2 and 3 ran as one test cycle.** Their tests went in first and the code after, then two mutants were checked:
+  - Dropping the clock-back guard fails `Setting_the_clock_back_cannot_replay_a_day`.
+  - Resuming an attempt from another day fails `An_attempt_left_from_yesterday_is_dropped`.
+- **`DailyShare` was built in Task 2,** because `DailyMode.ShareText` needs it.
+- **`GameMode.ShareText` returns a string, with `CanShare` beside it,** rather than a nullable string. The game-over panel decides from `CanShare` whether to build the button.
+- **`ClassicMode.CanContinue` replaces `GameController.CanResume`,** and the counter clamping moved into `ClassicMode`, the only mode with those counters.
+- **The Daily records the day its screen was opened on:** an attempt finished after midnight UTC still scores for the day it was dealt.
+- **Button labels shrink to fit one line,** so labels like "Daily · 12-day streak" fit their buttons.
+
+A fresh review found no critical defects. Its findings were fixed test-first:
+- **Home refreshes itself when the day changes** (Important).
+  - It used to refresh only when shown, so a played Daily read "done" past midnight UTC until a restart.
+  - `App.Update` now refreshes Home whenever the day changes. That covers coming back on a later day too.
+- **The local-time test can fail now.** It checks a time just after and just before midnight UTC, so in any zone but UTC one of them falls on another local date. Without the conversion it fails here, in UTC−3.
+- **Classic is checked after a Daily finish:** its best score and game index don't move.
+- **The share intent's builder calls** return objects that are now disposed.
+- **Kept as decided above:** a Daily screen left open past midnight still scores for the day it was dealt.
