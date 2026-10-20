@@ -53,41 +53,62 @@ namespace BlockPuzzle.Core
         /// <param name="mercyGame">True if this game started after too many quick losses.</param>
         public PieceShape[] Deal(Board board, int placements, bool mercyGame)
         {
+            var tray = new PieceShape[TraySize];
+            Deal(board, placements, mercyGame, tray);
+            return tray;
+        }
+
+        /// <summary>Deals a tray for the board into <paramref name="tray"/>, overwriting all three slots. Allocates nothing.</summary>
+        public void Deal(Board board, int placements, bool mercyGame, PieceShape?[] tray)
+        {
+            CheckTray(tray);
             DifficultyBand band = mercyGame && placements < _settings.MercyPlacements ? _settings.Mercy : _settings.BandFor(placements);
             bool helpful = placements < _settings.HelpfulUntilPlacement;
 
-            if (_settings.FitGuarantee == FitGuarantee.WholeTray)
-            {
-                var placeable = DealPlaceable(board, band, helpful);
-                if (placeable != null) return placeable;
-            }
+            if (_settings.FitGuarantee == FitGuarantee.WholeTray && DealPlaceable(board, band, helpful, tray)) return;
 
-            var dealt = DealRaw(board, band, helpful);
-            return _settings.FitGuarantee == FitGuarantee.None ? dealt : EnsureOneFits(board, dealt, band);
+            DealRaw(board, band, helpful, tray);
+            if (_settings.FitGuarantee != FitGuarantee.None) EnsureOneFits(board, tray, band);
         }
 
         /// <summary>The rewarded revive: small pieces that can all be placed on this board.</summary>
         public PieceShape[] DealRescue(Board board)
         {
-            // The standard catalog's smallest piece is one cell, and a board always has an empty cell
-            // after a placement (a full board would have cleared), so three of them always fit.
-            return DealPlaceable(board, _settings.Mercy, helpful: true) ?? new[] { _smallest, _smallest, _smallest };
+            var tray = new PieceShape[TraySize];
+            DealRescue(board, tray);
+            return tray;
         }
 
-        /// <summary>Deals up to MaxWholeTrayAttempts trays; the first whose pieces can all be placed, or null.</summary>
-        PieceShape[]? DealPlaceable(Board board, DifficultyBand band, bool helpful)
+        /// <summary>The rewarded revive, dealt into <paramref name="tray"/>, overwriting all three slots. Allocates nothing.</summary>
+        public void DealRescue(Board board, PieceShape?[] tray)
+        {
+            CheckTray(tray);
+            if (DealPlaceable(board, _settings.Mercy, helpful: true, tray)) return;
+
+            // The standard catalog's smallest piece is one cell, and a board always has an empty cell
+            // after a placement (a full board would have cleared), so three of them always fit.
+            for (int slot = 0; slot < TraySize; slot++) tray[slot] = _smallest;
+        }
+
+        static void CheckTray(PieceShape?[] tray)
+        {
+            if (tray == null) throw new ArgumentNullException(nameof(tray));
+            if (tray.Length != TraySize) throw new ArgumentException($"The tray must have {TraySize} slots.", nameof(tray));
+        }
+
+        /// <summary>Deals up to MaxWholeTrayAttempts trays into <paramref name="tray"/>; true once all of its pieces can be placed.</summary>
+        bool DealPlaceable(Board board, DifficultyBand band, bool helpful, PieceShape?[] tray)
         {
             for (int attempt = 0; attempt < _settings.MaxWholeTrayAttempts; attempt++)
             {
-                var tray = DealRaw(board, band, helpful);
-                if (TraySolver.CanPlaceAll(board, tray)) return tray;
+                DealRaw(board, band, helpful, tray);
+                if (TraySolver.CanPlaceAll(board, tray)) return true;
             }
-            return null;
+            return false;
         }
 
-        PieceShape[] DealRaw(Board board, DifficultyBand band, bool helpful)
+        void DealRaw(Board board, DifficultyBand band, bool helpful, PieceShape?[] tray)
         {
-            var tray = new PieceShape[TraySize];
             for (int slot = 0; slot < TraySize; slot++)
             {
                 PieceShape? pick = null;
@@ -95,19 +116,17 @@ namespace BlockPuzzle.Core
                     pick = PickWeighted(band, Filter.CanClearLine, board);
                 tray[slot] = pick ?? PickWeighted(band, Filter.None, board) ?? _smallest;
             }
-            return tray;
         }
 
-        PieceShape[] EnsureOneFits(Board board, PieceShape[] tray, DifficultyBand band)
+        void EnsureOneFits(Board board, PieceShape?[] tray, DifficultyBand band)
         {
             foreach (var piece in tray)
             {
-                if (piece.FitsAnywhere(board)) return tray;
+                if (piece!.FitsAnywhere(board)) return;
             }
 
             PieceShape? replacement = PickWeighted(band, Filter.FitsAnywhere, board) ?? PickAnyThatFits(board);
             if (replacement != null) tray[_rng.NextInt(TraySize)] = replacement;
-            return tray;
         }
 
         PieceShape? PickAnyThatFits(Board board)
