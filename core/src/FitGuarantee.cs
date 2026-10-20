@@ -1,3 +1,4 @@
+#nullable enable
 namespace BlockPuzzle.Core
 {
     /// <summary>What the generator promises about a freshly dealt tray.</summary>

@@ -4,7 +4,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <!-- Unity 6 compiles C# 9; keep the engine at that level so the same files build in both places. -->
     <LangVersion>9.0</LangVersion>
-    <Nullable>enable</Nullable>
+    <!-- Off, as in Unity: each file opts in with #nullable enable, and a file that forgets it fails the build (CS8632). -->
+    <Nullable>disable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>BlockPuzzle.Core</RootNamespace>
     <AssemblyName>BlockPuzzle.Core</AssemblyName>

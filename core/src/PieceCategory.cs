@@ -1,3 +1,4 @@
+#nullable enable
 namespace BlockPuzzle.Core
 {
     /// <summary>Size groups that the generator weights against each other.</summary>
