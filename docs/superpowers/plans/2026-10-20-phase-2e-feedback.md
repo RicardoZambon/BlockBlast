@@ -75,4 +75,28 @@
 
 ## Results
 
-(Filled in by Task 3.)
+Tasks 1–3 were built on 2026-10-20, test-first.
+
+- **Tests:** 114 EditMode and 52 PlayMode tests pass, and the 173 .NET tests are unchanged.
+  - The rules have 14 cases.
+  - In PlayMode, a two-line clear plays every effect and then settles: the board returns exactly home, and the swept cells end on the board's own colours.
+- **Effects:**
+  - **Placing:** a squash.
+  - **Clearing:** a diagonal sweep and a burst of squares.
+  - **Praise:**
+    - "Great!" at 2 lines, "Amazing!" at 3, "Incredible!" at 4 or more, "Board clear!" when the board empties.
+    - "Streak N!" for a single line in a streak of 3 or more.
+  - **The HUD:** a streak counter from 2.
+  - **Big clears:** a light shake of the board.
+  - **Haptics:** light, medium or heavy.
+  - **Sound:** each sound rises 6% in pitch per streak step, up to 1.6×.
+- **Android:** the development APK builds with the haptics code: 64 MB.
+
+Decisions made while building:
+- **A first run used a test board that the clear empties completely.** "Board clear!" was the right praise there, so the board now keeps one cell. A build without the shake's settle-home was checked and fails the test.
+- **The shake moves the board's squares,** never the camera or the layout. Input keeps reading the true positions, and the board settles back on the exact position it started from.
+- **The sweep ends on the board's own colours,** and a new drag's ghost ends a sweep still running, so back-to-back clears never leave cells mid-fade.
+- **Particles fly at angles spread by the golden angle,** so they need no random numbers. They come from a pool of 48 built once.
+- **`DragController` reports the cells the piece now covers,** because the engine's outcome only holds the cleared ones and the squash needs the placed ones.
+- **The tutorial plays the feedback too,** so its row and column clears look the way they will in play.
+- **Haptics:** `VibrationEffect.createOneShot` on Android 8 and later, and `vibrate(ms)` below. A never-called reference to `Handheld.Vibrate` makes Unity add the VIBRATE permission.
