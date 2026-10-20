@@ -36,6 +36,41 @@ public class BoardTests
     }
 
     [Fact]
+    public void RowMask_and_ColumnMask_cover_one_line()
+    {
+        var row2 = Board.Parse(
+            "........",
+            "........",
+            "########",
+            "........",
+            "........",
+            "........",
+            "........",
+            "........");
+        var column5 = Board.Parse(
+            ".....#..",
+            ".....#..",
+            ".....#..",
+            ".....#..",
+            ".....#..",
+            ".....#..",
+            ".....#..",
+            ".....#..");
+
+        Assert.Equal(row2.Cells, Board.RowMask(2));
+        Assert.Equal(column5.Cells, Board.ColumnMask(5));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(8)]
+    public void RowMask_and_ColumnMask_reject_lines_off_the_board(int line)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Board.RowMask(line));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Board.ColumnMask(line));
+    }
+
+    [Fact]
     public void Fits_is_false_only_where_cells_overlap()
     {
         var board = new Board(TestBoards.Cell(0, 0));
