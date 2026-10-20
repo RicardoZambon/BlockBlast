@@ -2,5 +2,6 @@
   <Folder Name="/dotnet/">
     <Project Path="dotnet/BlockPuzzle.Core.Tests/BlockPuzzle.Core.Tests.csproj" />
     <Project Path="dotnet/BlockPuzzle.Core/BlockPuzzle.Core.csproj" />
+    <Project Path="dotnet/BlockPuzzle.Sim/BlockPuzzle.Sim.csproj" />
   </Folder>
 </Solution>

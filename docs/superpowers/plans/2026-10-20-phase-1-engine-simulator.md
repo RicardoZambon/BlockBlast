@@ -3074,4 +3074,19 @@ git commit -m "Add the simulator and tune the generator presets" -m "Co-Authored
 
 ## Results
 
-Filled in after Task 8.
+Final run after tuning: 20,000 games per profile (400 simulated players × 50 games), seed 1, greedy bot.
+
+| Profile | Median | P10 | P90 | Mean | Games ending before 20 | Lines per game | Median score | Mercy games |
+|---|---|---|---|---|---|---|---|---|
+| gentle | 155 | 65 | 335 | 184.0 | 0.0% | 84.9 | 2,976 | 0.0% |
+| baseline | 98 | 43 | 196 | 110.5 | 0.1% | 48.8 | 1,593 | 0.0% |
+| hard | 46 | 23 | 89 | 52.4 | 4.7% | 23.6 | 760 | 0.1% |
+
+- **Baseline tuning.**
+  - Before: small/medium/large weights 35/45/20 → 28/45/27 → 22/43/35 gave a median of 68, too hard for the 80–150 target.
+  - Two steps of moving weight from large to small pieces gave 43/45/12 → 37/45/18 → 31/44/25.
+  - After: a median of 98. Seed 2 gives 98 too. These are now the `Baseline()` weights in `core/src/GeneratorSettings.cs`. The code block in Task 5 shows the starting values.
+- **Random bot:** medians of 19 / 16 / 14 (gentle / baseline / hard). Placement quality matters far more than luck, which is what a skill game needs.
+- **Mercy:** almost never triggers for the greedy bot, because it rarely loses quickly. For the random bot it covers 23–60% of games, so it's working.
+- **Cap and speed:** no game hit the 10,000-placement cap, and a full 3 × 20,000-game run takes about 3 seconds.
+- **Next:** recalibrate against real players in master-plan task 1.9. The target there is Classic games lasting 3–8 minutes.

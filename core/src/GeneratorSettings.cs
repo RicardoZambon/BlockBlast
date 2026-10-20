@@ -82,9 +82,9 @@ namespace BlockPuzzle.Core
             Name = "baseline",
             Bands = new[]
             {
-                new DifficultyBand(0, 0, 35, 45, 20),
-                new DifficultyBand(30, 0, 28, 45, 27),
-                new DifficultyBand(90, 0, 22, 43, 35),
+                new DifficultyBand(0, 0, 43, 45, 12),
+                new DifficultyBand(30, 0, 37, 45, 18),
+                new DifficultyBand(90, 0, 31, 44, 25),
             },
         };
 
