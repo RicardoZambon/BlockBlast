@@ -144,22 +144,30 @@ public class PieceGeneratorTests
     }
 
     [Fact]
-    public void Dealing_into_a_tray_allocates_nothing()
+    public void Dealing_into_a_tray_allocates_nothing_from_a_new_generators_first_deal()
     {
-        var generator = Create(GeneratorSettings.Gentle(), seed: 5);   // WholeTray re-deals: the most work per deal
+        // Every game builds a new generator, so its very first deals must not allocate either.
+        // Gentle's WholeTray re-deals are the most work per deal.
         var tray = new PieceShape?[PieceGenerator.TraySize];
-        generator.Deal(TestBoards.Crossroads, placements: 0, mercyGame: false, tray);   // warm up first-call setup
-        generator.DealRescue(TestBoards.Checkerboard, tray);
+        DealEveryKind(Create(GeneratorSettings.Gentle(), seed: 5), tray);   // compiles the code and sets up statics
+        var generator = Create(GeneratorSettings.Gentle(), seed: 5);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 20; i++)
-        {
-            generator.Deal(TestBoards.Crossroads, placements: i * 5, mercyGame: i % 2 == 1, tray);
-            generator.Deal(TestBoards.Checkerboard, placements: i * 5, mercyGame: false, tray);
-            generator.DealRescue(TestBoards.Crossroads, tray);
-        }
+        DealEveryKind(generator, tray);
 
         Assert.Equal(0L, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    static void DealEveryKind(PieceGenerator generator, PieceShape?[] tray)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            generator.Deal(AlmostFullRow, placements: i, mercyGame: false, tray);   // helpful picks that can clear a line
+            generator.Deal(TestBoards.Crossroads, placements: i * 5, mercyGame: i % 2 == 1, tray);
+            generator.Deal(TestBoards.Checkerboard, placements: i * 5, mercyGame: false, tray);   // only a single cell fits
+            generator.DealRescue(TestBoards.Crossroads, tray);
+            generator.DealRescue(TestBoards.Checkerboard, tray);
+        }
     }
 
     [Fact]

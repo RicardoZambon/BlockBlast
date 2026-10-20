@@ -32,12 +32,7 @@ namespace BlockPuzzle.Core
             _settings.Validate();
 
             var lists = new List<PieceShape>[CategoryCount];
-            _allowed = new List<PieceShape>[CategoryCount];
-            for (int c = 0; c < CategoryCount; c++)
-            {
-                lists[c] = new List<PieceShape>();
-                _allowed[c] = new List<PieceShape>();
-            }
+            for (int c = 0; c < CategoryCount; c++) lists[c] = new List<PieceShape>();
 
             _smallest = catalog.Shapes[0];
             foreach (var shape in catalog.Shapes)
@@ -48,10 +43,13 @@ namespace BlockPuzzle.Core
 
             _byCategory = new PieceShape[CategoryCount][];
             _canClearLine = new bool[CategoryCount][];
+            _allowed = new List<PieceShape>[CategoryCount];
             for (int c = 0; c < CategoryCount; c++)
             {
                 _byCategory[c] = lists[c].ToArray();
                 _canClearLine[c] = new bool[_byCategory[c].Length];
+                // Room for the whole catalog (PickAnyThatFits fills _allowed[0] from every category), so dealing never grows them.
+                _allowed[c] = new List<PieceShape>(catalog.Shapes.Count);
             }
         }
 
