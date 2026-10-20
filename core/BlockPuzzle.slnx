@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/dotnet/">
+    <Project Path="dotnet/BlockPuzzle.Core.Tests/BlockPuzzle.Core.Tests.csproj" />
+    <Project Path="dotnet/BlockPuzzle.Core/BlockPuzzle.Core.csproj" />
+  </Folder>
+</Solution>

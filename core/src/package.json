@@ -1,0 +1,7 @@
+{
+  "name": "com.yourstudio.blockpuzzle.core",
+  "version": "0.1.0",
+  "displayName": "Block Puzzle Core",
+  "description": "Pure C# rules engine for the block puzzle game.",
+  "unity": "6000.3"
+}
