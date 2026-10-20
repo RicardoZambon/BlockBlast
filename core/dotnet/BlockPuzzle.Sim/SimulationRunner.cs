@@ -40,7 +40,7 @@ public static class SimulationRunner
                 }
 
                 results[player * gamesPerPlayer + g] = new GameResult(game.Placements, game.Score, game.LinesCleared, game.MaxStreak, game.IsMercyGame, capped);
-                quickLosses = game.Placements < generator.QuickLossPlacements ? quickLosses + 1 : 0;
+                quickLosses = game.NextRecentQuickLosses;
             }
         });
         return results;

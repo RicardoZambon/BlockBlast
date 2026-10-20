@@ -3115,10 +3115,11 @@ Deferred, minor today:
   - Check that Unity's `JsonUtility` saves and loads the 64-bit snapshot fields exactly.
   - Run the golden tests in EditMode.
   - Commit the `.meta` files Unity generates in `core/src`.
-  - Add `GetTrayPiece(slot)`, because the `Tray` span can't be used across coroutine or async boundaries.
-  - Move the quick-loss rule into the engine, so the Unity code and the simulator share it.
-  - Set `<Nullable>disable</Nullable>` in the engine project, so CI catches a missing `#nullable enable` the way Unity would.
-  - Add that directive to `PieceCategory.cs` and `FitGuarantee.cs`.
+  - Done in the Task 1.8 engine prep (below):
+    - Add `GetTrayPiece(slot)`, because the `Tray` span can't be used across coroutine or async boundaries.
+    - Move the quick-loss rule into the engine, so the Unity code and the simulator share it.
+    - Set `<Nullable>disable</Nullable>` in the engine project, so CI catches a missing `#nullable enable` the way Unity would.
+    - Add that directive to `PieceCategory.cs` and `FitGuarantee.cs`.
 - **Task 1.9 (playtests):**
   - Re-derive Gentle's weights from the tuned Baseline. Its pieces are no longer smaller on average; it is easier only because of WholeTray and its helpful phase.
   - Decide whether the revive gets its own small-piece band. Today it reuses Mercy, giving 34.5% medium and 4.9% large pieces.
@@ -3150,7 +3151,7 @@ Left open from this review:
 - **Phase 2:** saves don't record the piece catalog (above).
 - **Task 1.8:**
   - `TraySolver` is an unpruned search. On adversarial boards a WholeTray deal can take about 2.4 ms on desktop, which could cost a frame on a low-end phone. Measure it there, and prune if needed.
-  - Cache the `CanClearLine` filter per deal, and avoid allocating a tray array on every deal.
+  - Cache the `CanClearLine` filter per deal, and avoid allocating a tray array on every deal (done in the Task 1.8 engine prep below).
 - **Small** (done in the review follow-up below):
   - CI doesn't check the simulator's difficulty target.
   - `--games` is rounded down to a multiple of games per player.
@@ -3185,3 +3186,31 @@ A fresh review of the follow-up found nothing critical or important. Its five mi
 - The file table above is current.
 
 The golden values didn't change. Neither did the 20,000-game medians: 155, 98 and 46 placements for gentle, baseline and hard. There are now 147 tests: 110 for the engine and 37 for the simulator.
+
+### Task 1.8 engine prep
+
+The parts of Task 1.8 that don't need Unity went first, test-first, in their own PR. Each new test was checked against a code change that breaks it.
+- **`GameSession.GetTrayPiece(slot)`:** reads one tray slot without the `Tray` span, which can't cross coroutine or async boundaries.
+- **`GameSession.NextRecentQuickLosses`:** the quick-loss rule now lives in the engine.
+  - Pass it as `recentQuickLosses` to the player's next game. The simulator now does the same.
+  - It stops at `int.MaxValue` instead of wrapping.
+- **Nullable:** the engine project turns nullable off, as Unity does, and every file opts in with `#nullable enable`.
+  - A test checks that every engine file starts with the directive.
+  - Without it, a file that uses annotations fails the build with CS8632, where Unity would only warn. Any other file would silently lose its nullable checks.
+- **Dealing:**
+  - `PieceGenerator.Deal` and `DealRescue` gain overloads that fill a three-slot tray.
+  - `GameSession` deals straight into its own tray, and the generator sizes its scratch lists up front. So a game allocates nothing per deal, starting with its first. A test checks this on a new generator with `GC.GetAllocatedBytesForCurrentThread`.
+  - `CanClearLine` is worked out once per board instead of on every helpful pick. A desktop benchmark measured helpful-phase deals on a board that changes every deal: they are 1.15–2.7 times faster. For example, baseline on an empty board went from 18.9 to 7.1 µs per deal.
+
+A fresh review found nothing critical or important. It found two minor gaps, both now fixed:
+- A new generator's first deals still grew its scratch lists.
+- The build alone only caught a missing directive in files that use annotations.
+
+The golden values and the 20,000-game medians (155, 98 and 46) didn't change. There are now 161 tests: 124 for the engine and 37 for the simulator.
+
+Still open for Task 1.8; each needs Unity or a phone:
+- Create the Unity 6.3 LTS project and build the prototype itself (the master plan's 1.8 list).
+- Check that `JsonUtility` saves and loads the 64-bit snapshot fields exactly.
+- Run the golden tests in EditMode.
+- Commit the `.meta` files Unity generates in `core/src`.
+- Measure `TraySolver` on a low-end Android phone, and prune it if needed.
