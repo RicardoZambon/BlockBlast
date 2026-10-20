@@ -6,6 +6,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 1 plan](docs/superpowers/plans/2026-10-20-phase-1-engine-simulator.md): the engine and the simulator, step by step
 - [Task 1.8 plan](docs/superpowers/plans/2026-10-20-task-1.8-unity-prototype.md): the rough Unity prototype, step by step
 - [Phase 2a plan](docs/superpowers/plans/2026-10-20-phase-2a-app-shell.md): the app shell, with its screens and a safe, banner-aware layout
+- [Phase 2b plan](docs/superpowers/plans/2026-10-20-phase-2b-save-and-resume.md): pausing on interruptions, and a backup save
 
 ## Layout
 

@@ -22,8 +22,9 @@ namespace BlockPuzzle.Game
 
         public static string DefaultPath => Path.Combine(Application.persistentDataPath, FileName);
 
+        /// <summary>The settings, or the ones before the last change when the file is damaged; the defaults when neither reads.</summary>
         public SettingsData Load() =>
-            JsonFile.TryRead(_path, out SettingsData data) && data.Version == SettingsData.CurrentVersion ? data : new SettingsData();
+            JsonFile.TryReadOrBackup(_path, read => read.Version == SettingsData.CurrentVersion, out SettingsData data) ? data : new SettingsData();
 
         public void Save(SettingsData settings)
         {

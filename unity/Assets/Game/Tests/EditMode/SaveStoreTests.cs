@@ -127,6 +127,50 @@ namespace BlockPuzzle.Game.Tests
             Assert.AreEqual(1200, data.BestScore);
         }
 
+        static SaveData WithBest(int best)
+        {
+            var data = Sample();
+            data.BestScore = best;
+            return data;
+        }
+
+        [Test]
+        public void A_damaged_save_falls_back_to_the_one_before()
+        {
+            var store = new SaveStore(SavePath);
+            store.Write(WithBest(100));
+            store.Write(WithBest(200));
+
+            File.WriteAllText(SavePath, "{ damaged");
+
+            Assert.IsTrue(store.TryRead(out var data));
+            Assert.AreEqual(100, data.BestScore, "the backup holds the save before the last one");
+        }
+
+        [Test]
+        public void A_save_killed_between_renames_reads_the_backup()
+        {
+            var store = new SaveStore(SavePath);
+            store.Write(WithBest(100));
+            store.Write(WithBest(200));
+
+            File.Delete(SavePath);   // a replace moves the old file to the backup before it moves the new one in
+
+            Assert.IsTrue(store.TryRead(out var data));
+            Assert.AreEqual(100, data.BestScore);
+        }
+
+        [Test]
+        public void A_backup_from_another_version_is_ignored()
+        {
+            var old = WithBest(100);
+            old.Version = SaveData.CurrentVersion + 1;
+            JsonFile.Write(SavePath + ".bak", old);
+            File.WriteAllText(SavePath, "{ damaged");
+
+            Assert.IsFalse(new SaveStore(SavePath).TryRead(out _));
+        }
+
         [Test]
         public void Write_creates_the_folder_if_needed()
         {
