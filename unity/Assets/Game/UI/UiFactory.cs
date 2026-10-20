@@ -101,7 +101,11 @@ namespace BlockPuzzle.Game
             rect.gameObject.AddComponent<Image>().color = Palette.Filled;
             var button = rect.gameObject.AddComponent<Button>();
             button.onClick.AddListener(() => onClick());
-            Text(Stretch(rect, "Label"), 64, Color.white).text = label;
+            // One line that shrinks to fit: the label area is too short for a second line, so a long label gets smaller.
+            var text = FittedText(Stretch(rect, "Label"), 64, Color.white);
+            text.rectTransform.offsetMin = new Vector2(24, 40);
+            text.rectTransform.offsetMax = new Vector2(-24, -40);
+            text.text = label;
             return button;
         }
 

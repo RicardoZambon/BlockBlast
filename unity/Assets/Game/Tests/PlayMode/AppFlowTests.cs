@@ -1,5 +1,7 @@
 #nullable enable
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using BlockPuzzle.Core;
 using NUnit.Framework;
@@ -8,21 +10,29 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
 using static BlockPuzzle.Game.Tests.TestDrags;
+using Object = UnityEngine.Object;
 
 namespace BlockPuzzle.Game.Tests
 {
-    /// <summary>The app shell through App: Home, Play and Continue, pause, game over, Settings and the back button.</summary>
+    /// <summary>The app shell through App: Home, Play and Continue, the Daily, pause, game over, Settings and back.</summary>
     public class AppFlowTests
     {
+        static readonly DateTime October20 = new DateTime(2026, 10, 20, 12, 0, 0, DateTimeKind.Utc);
+        const int Day = 20746;   // October20's day number
+
         string _folder = "";
         GameObject? _camera;
         App? _app;
+        DateTime _now;
+        readonly List<string> _shared = new List<string>();
 
         string SavePath => Path.Combine(_folder, SaveStore.FileName);
 
         [SetUp]
         public void SetUp()
         {
+            _now = October20;
+            _shared.Clear();
             _folder = Path.Combine(Path.GetTempPath(), "blockpuzzle-apptests-" + System.Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_folder);
             _camera = new GameObject("Main Camera") { tag = "MainCamera" };
@@ -41,11 +51,25 @@ namespace BlockPuzzle.Game.Tests
             if (Directory.Exists(_folder)) Directory.Delete(_folder, recursive: true);
         }
 
+        /// <summary>An App in this test's folder, on this test's clock, sharing into this test's list.</summary>
         App Boot()
         {
             _app = new GameObject("App").AddComponent<App>();
-            _app.Boot(_folder);
+            _app.Boot(_folder, () => _now, _shared.Add);
             return _app;
+        }
+
+        void SaveDaily(DailyRecord record, GameSession? attempt = null, int attemptDay = Day)
+        {
+            var save = new SaveData();
+            save.Daily.Record = record;
+            if (attempt != null)
+            {
+                save.Daily.HasGame = true;
+                save.Daily.GameDay = attemptDay;
+                save.Daily.Game = attempt.ToSnapshot();
+            }
+            new SaveStore(SavePath).Write(save);
         }
 
         [UnityTest]
@@ -244,13 +268,148 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [UnityTest]
-        public IEnumerator Daily_is_shown_but_disabled()
+        public IEnumerator Daily_deals_todays_puzzle_and_home_offers_to_continue_it()
         {
             var app = Boot();
             yield return null;
+            Assert.AreEqual("Daily", app.Home.DailyLabel);
+            Assert.IsTrue(app.Home.DailyEnabled);
 
-            Assert.AreEqual("Daily · soon", app.Home.DailyLabel);
+            app.Home.PressDaily();
+            yield return null;
+            Assert.AreEqual(AppScreen.Daily, app.Current);
+            var daily = app.Daily!;
+            Assert.AreEqual("c3d,t4a,c3a", TestGames.TrayIds(daily.Game), "the golden first tray, the same on every phone");
+            yield return DragAndRelease(daily, 0, PointerFor(daily.Layout, daily.Game.GetTrayPiece(0)!, 0, 0));
+            Assert.AreEqual(1, daily.Game.Placements);
+
+            daily.TogglePause();
+            daily.Pause.PressHome();
+            yield return null;
+            Assert.AreEqual("Daily · continue", app.Home.DailyLabel);
+            Assert.AreEqual("Play", app.Home.PlayLabel, "the Daily is not a Classic game");
+
+            app.Home.PressDaily();
+            yield return null;
+            Assert.AreEqual(1, app.Daily!.Game.Placements);
+        }
+
+        [UnityTest]
+        public IEnumerator Finishing_the_daily_extends_the_streak_and_offers_share()
+        {
+            SaveDaily(new DailyRecord { LastDay = Day - 1, Streak = 2, BestStreak = 2 },
+                TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
+            var app = Boot();
+            yield return null;
+            Assert.AreEqual("Daily · continue", app.Home.DailyLabel);
+            app.Home.PressDaily();
+            yield return null;
+            var daily = app.Daily!;
+
+            yield return DragAndRelease(daily, 0, PointerFor(daily.Layout, PieceCatalog.Standard["i2h"], 0, 1));
+
+            Assert.IsTrue(daily.GameOver.IsShown);
+            Assert.IsFalse(daily.GameOver.OffersPlayAgain, "one scored attempt a day");
+            StringAssert.Contains("3-day streak", daily.GameOver.ScoresText);
+            daily.GameOver.PressShare();
+            Assert.AreEqual(1, _shared.Count);
+            StringAssert.Contains("Daily 2026-10-20", _shared[0]);
+            StringAssert.Contains("3-day streak", _shared[0]);
+
+            daily.GameOver.PressHome();
+            yield return null;
+            Assert.AreEqual("Daily · done", app.Home.DailyLabel);
             Assert.IsFalse(app.Home.DailyEnabled);
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.AreEqual(Day, saved.Daily.Record.LastDay);
+            Assert.AreEqual(3, saved.Daily.Record.Streak);
+            Assert.IsFalse(saved.Daily.HasGame);
+        }
+
+        [UnityTest]
+        public IEnumerator A_played_daily_waits_for_the_next_day()
+        {
+            SaveDaily(new DailyRecord { LastDay = Day, Streak = 1, BestStreak = 1 });
+            var app = Boot();
+            yield return null;
+            Assert.AreEqual("Daily · done", app.Home.DailyLabel);
+            app.Home.PressDaily();
+            Assert.AreEqual(AppScreen.Home, app.Current);
+
+            _now = October20.AddDays(1);
+            app.ShowHome();
+            Assert.AreEqual("Daily · 1-day streak", app.Home.DailyLabel);
+            app.Home.PressDaily();
+            yield return null;
+
+            Assert.AreEqual(AppScreen.Daily, app.Current);
+            Assert.AreEqual(TestGames.TrayIds(DailyPuzzle.NewGame(Day + 1)), TestGames.TrayIds(app.Daily!.Game));
+        }
+
+        [UnityTest]
+        public IEnumerator Setting_the_clock_back_cannot_replay_a_day()
+        {
+            SaveDaily(new DailyRecord { LastDay = Day, Streak = 1, BestStreak = 1 });
+            _now = October20.AddDays(-3);
+            var app = Boot();
+            yield return null;
+
+            Assert.AreEqual("Daily · done", app.Home.DailyLabel);
+            Assert.IsFalse(app.Home.DailyEnabled);
+            app.PlayDaily();
+            Assert.AreEqual(AppScreen.Home, app.Current);
+            Assert.IsNull(app.Daily);
+        }
+
+        [UnityTest]
+        public IEnumerator An_attempt_left_from_yesterday_is_dropped()
+        {
+            SaveDaily(new DailyRecord(), TestGames.Position(Board.Empty, "dot", "o2", "i3h"), attemptDay: Day - 1);
+            var app = Boot();
+            yield return null;
+            Assert.AreEqual("Daily", app.Home.DailyLabel, "yesterday's attempt is not today's to continue");
+
+            app.Home.PressDaily();
+            yield return null;
+
+            Assert.AreEqual("c3d,t4a,c3a", TestGames.TrayIds(app.Daily!.Game));
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.AreEqual(Day, saved.Daily.GameDay);
+            Assert.AreEqual(-1, saved.Daily.Record.LastDay, "the dropped attempt scored nothing");
+        }
+
+        [UnityTest]
+        public IEnumerator Classic_and_daily_keep_separate_games()
+        {
+            var app = Boot();
+            yield return null;
+            app.Home.PressPlay();
+            yield return null;
+            var classic = app.Game!;
+            yield return DragAndRelease(classic, 0, PointerFor(classic.Layout, classic.Game.GetTrayPiece(0)!, 0, 0));
+            string classicTray = TestGames.TrayIds(classic.Game);
+            classic.TogglePause();
+            classic.Pause.PressHome();
+            yield return null;
+
+            app.Home.PressDaily();
+            yield return null;
+            var daily = app.Daily!;
+            yield return DragAndRelease(daily, 0, PointerFor(daily.Layout, daily.Game.GetTrayPiece(0)!, 0, 0));
+            daily.TogglePause();
+            daily.Pause.PressHome();
+            yield return null;
+
+            app.Home.PressPlay();
+            yield return null;
+            Assert.AreSame(classic, app.Game);
+            Assert.AreEqual(1, classic.Game.Placements);
+            Assert.AreEqual(classicTray, TestGames.TrayIds(classic.Game));
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.AreEqual(1, saved.Game.Placements);
+            Assert.AreEqual(1, saved.Daily.Game.Placements);
+            Assert.AreEqual(classic.Game.Score, saved.BestScore, "the Daily's score isn't Classic's best");
+            Assert.AreEqual(0, saved.NextGameIndex);
         }
     }
 }
