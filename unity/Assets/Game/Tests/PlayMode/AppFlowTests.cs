@@ -314,12 +314,14 @@ namespace BlockPuzzle.Game.Tests
             yield return null;
             var tutorial = app.Tutorial!;
             var shape = tutorial.Game.GetTrayPiece(1)!;
+            var board = tutorial.Game.Board;
 
             yield return DragAndRelease(tutorial, 1, PointerFor(tutorial.Layout, shape, 5, 0));   // free, but not the guided spot
             yield return new WaitForSeconds(DragController.ReturnSeconds + 0.05f);
 
-            Assert.AreEqual(0, tutorial.Game.Placements);
-            Assert.IsNotNull(tutorial.Game.GetTrayPiece(1));
+            // An accepted drop would move on to step 2: a new game on a new board, with a bar in the tray.
+            Assert.AreEqual(board, tutorial.Game.Board);
+            Assert.AreEqual("o2", tutorial.Game.GetTrayPiece(1)!.Id);
             Assert.AreEqual("Drag the piece onto the board", tutorial.Hint!.Text);
         }
 
@@ -364,7 +366,8 @@ namespace BlockPuzzle.Game.Tests
             yield return PlayGuidedMove(tutorial);
             Assert.AreEqual("Fill a row to clear it", tutorial.Hint!.Text);
 
-            tutorial.TogglePause();
+            app.Back();   // the back button pauses the tutorial like any game
+            Assert.IsTrue(tutorial.IsPaused);
             tutorial.Pause.PressHome();
             yield return null;
             Assert.AreEqual(AppScreen.Home, app.Current);

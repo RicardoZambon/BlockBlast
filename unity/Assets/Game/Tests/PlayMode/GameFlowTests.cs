@@ -394,6 +394,25 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator Skipping_the_tutorial_saves_that_it_is_done()
+        {
+            // Without App, so nothing else writes the save after Skip.
+            var save = new SaveData();
+            _controller = new GameObject("Tutorial").AddComponent<GameController>();
+            _controller.Boot(new SaveStore(SavePath), save, new TutorialMode(save));
+            int completed = 0;
+            _controller.Completed += () => completed++;
+            yield return null;
+
+            _controller.Hint!.PressSkip();
+
+            Assert.AreEqual(1, completed);
+            Assert.IsTrue(new SaveStore(SavePath).TryRead(out var saved));
+            Assert.IsTrue(saved.TutorialDone);
+            Assert.IsFalse(_controller.Hand!.IsShown);
+        }
+
+        [UnityTest]
         public IEnumerator Going_to_the_background_pauses_the_game()
         {
             var game = Boot();

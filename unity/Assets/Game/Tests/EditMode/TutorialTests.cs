@@ -1,6 +1,8 @@
 #nullable enable
 using BlockPuzzle.Core;
 using NUnit.Framework;
+using UnityEngine.TestTools.Constraints;
+using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace BlockPuzzle.Game.Tests
 {
@@ -54,6 +56,22 @@ namespace BlockPuzzle.Game.Tests
             Assert.IsFalse(session.HasTarget);
             session.Move(game, 2.3f, 1.8f);
             Assert.IsTrue(session.HasTarget);
+        }
+
+        [Test]
+        public void A_guided_drag_allocates_nothing()
+        {
+            var game = TestGames.Position(Board.Empty, "", "o2", "");
+            var session = new DragSession();
+            session.SetGuide(2, 2);
+            session.TryBegin(game, 1);
+            session.Move(game, 2.3f, 1.8f);
+
+            Assert.That(() =>
+            {
+                session.Move(game, 2.3f, 1.8f);
+                session.Move(game, 5.1f, 0.2f);
+            }, Is.Not.AllocatingGCMemory());
         }
 
         [Test]
