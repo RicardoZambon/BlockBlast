@@ -261,4 +261,29 @@
 
 ## Results
 
-(Filled in by Task 6.)
+Tasks 1–6 were built on 2026-10-20, test-first.
+
+- **Tests:** 81 EditMode and 28 PlayMode tests pass, and the 161 .NET tests are unchanged.
+- **Screens:**
+  - The scene holds a camera, a 2D light and `App`, which builds Home, the game and Settings.
+  - Home's main button reads Continue or Play; Daily shows "Daily · soon", disabled.
+  - The game has a pause button, a pause overlay (Resume, Home) and game over with Home and a hidden revive slot.
+  - Settings stores four toggles at once on every change, and shows the version.
+- **Layout:** a banner band of 50 dp on phones and 90 dp on tablets is kept free at the top of the safe area. At 9:16, 9:21 and 3:4 the score, board and tray still fit.
+- **Android:** the development APK still builds: 64 MB, under the 80 MB download limit.
+
+Decisions made while building:
+- **The HUD's anchors come from the camera view,** under the full-screen canvas rather than the safe-area panel. The layout's score band is already inside the safe area and below the banner band, so a second inset would count the notch twice.
+- **What sits where:**
+  - The pause and game-over overlays are full-screen dims with their buttons in the middle.
+  - The development overlay sits in the safe-area panel, with its Bench button in the banner band, which stays empty until Phase 3.
+- **Pausing turns `PointerInput` off,** and `PointerInput.Apply` ignores frames while it's off. That refuses presses, as planned, and also drags and releases. The board stays visible behind the overlay.
+- **`SafeAreaPanel` applies its anchors in `Create`,** not only in `Awake`, because `Awake` doesn't run in EditMode tests. `Update` reapplies them when the safe area or the screen size changes.
+- **Shared code:**
+  - `UiFactory` gained `Canvas` and `EnsureEventSystem`, moved out of `GameController`, so App and the screens share them.
+  - App creates the EventSystem before any screen, so a hidden game never takes it down with it.
+  - `SaveStore.FileName` and `SettingsStore.FileName` name the two files.
+- **Test helpers:** `PointerFor`, `DragAndRelease`, the one-move-from-game-over board and saving a position moved to `Tests/Shared`, for `GameFlowTests` and `AppFlowTests`.
+- **Home's title** is `Application.productName` until task 0.2 names the game.
+- **The back button on game over** does nothing; the panel has Home and Play again.
+- **Task 1.8's phone checks** moved to the master plan's tasks 4.1 and 4.2, so they no longer hold anything up.
