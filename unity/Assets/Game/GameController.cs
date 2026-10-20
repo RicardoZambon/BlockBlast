@@ -51,6 +51,7 @@ namespace BlockPuzzle.Game
             Hud = HudView.Create(canvas);
             GameOver = GameOverView.Create(canvas, PlayAgain);
             GameOver.Hide();
+            DebugOverlay.CreateIfDevelopment(canvas);   // development builds only
             EnsureEventSystem();
 
             Drag = gameObject.AddComponent<DragController>();

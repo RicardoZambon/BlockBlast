@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Diagnostics;
 using BlockPuzzle.Core;
 
 namespace BlockPuzzle.Game
@@ -35,6 +37,42 @@ namespace BlockPuzzle.Game
             var game = new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), seed);
             for (int i = 0; i < 10_000 && !game.IsGameOver; i++) PlayFirstFitMove(game);
             return $"placements={game.Placements} score={game.Score} lines={game.LinesCleared} board={game.Board.Cells:X16}";
+        }
+
+        /// <summary>"determinism OK" when this runtime plays the golden game exactly as .NET does; otherwise what it got instead.</summary>
+        public static string CheckDeterminism()
+        {
+            string actual = PlayFirstFit(GoldenSeed);
+            return actual == FirstFitGolden ? "determinism OK" : "determinism FAILED: " + actual;
+        }
+
+        // Crowded boards, the engine tests' Crossroads, Checkerboard and AlmostFullRow, where WholeTray re-deals most
+        // and TraySolver searches hardest.
+        static readonly Board[] BenchmarkBoards =
+        {
+            Board.Parse("###.###.", "###.###.", "###.###.", "........", "###.###.", "###.###.", "###.###.", "........"),
+            Board.Parse("#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#"),
+            Board.Parse("######..", "........", "........", "........", "........", "........", "........", "........"),
+        };
+
+        /// <summary>Times Gentle-profile (WholeTray) deals in the helpful phase on crowded boards: "deals: max X ms, mean Y ms".</summary>
+        public static string BenchmarkDeals(int deals)
+        {
+            var generator = new PieceGenerator(PieceCatalog.Standard, GeneratorSettings.Gentle(), new Pcg32(GoldenSeed));
+            var tray = new PieceShape?[PieceGenerator.TraySize];
+            var stopwatch = new Stopwatch();
+            double max = 0;
+            double total = 0;
+            for (int i = 0; i < deals; i++)
+            {
+                stopwatch.Restart();
+                generator.Deal(BenchmarkBoards[i % BenchmarkBoards.Length], placements: i % 30, mercyGame: false, tray);
+                stopwatch.Stop();
+                double ms = stopwatch.Elapsed.TotalMilliseconds;
+                total += ms;
+                if (ms > max) max = ms;
+            }
+            return $"deals: max {max:F2} ms, mean {total / Math.Max(1, deals):F3} ms";
         }
     }
 }
