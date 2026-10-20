@@ -24,16 +24,30 @@ Console.WriteLine($"{options.Games:N0} games per profile " +
 Console.WriteLine();
 Console.WriteLine(Report.Header);
 
+GameResult[]? baselineResults = null;
 foreach (string profile in options.Profiles)
 {
     var settings = GeneratorSettings.ForProfile(profile);
     var stopwatch = Stopwatch.StartNew();
     var results = SimulationRunner.Run(PieceCatalog.Standard, settings, new ScoringSettings(), options.Bot, options.Games, options.GamesPerPlayer, options.Seed);
     Console.WriteLine(Report.Row(profile, options.Bot, results, stopwatch.Elapsed));
+    if (profile == "baseline") baselineResults = results;
 }
 
 Console.WriteLine();
 Console.WriteLine("Columns are placements per game except: <20 = games ending before placement 20, lines = lines per game,");
 Console.WriteLine("score = median score, streak90 = 90th-percentile best streak, mercy = mercy games, capped = games stopped at the cap.");
-Console.WriteLine("Target for baseline + greedy: median 80-150 placements, under 5% of games ending before 20.");
+Console.WriteLine($"Target for baseline + greedy: {TargetCheck.Description}.");
+
+if (options.CheckTarget)
+{
+    // Parse guarantees the greedy bot and the baseline profile, so baselineResults is set.
+    string? miss = TargetCheck.Miss(baselineResults!);
+    if (miss != null)
+    {
+        Console.Error.WriteLine($"Target missed: {miss}.");
+        return 2;
+    }
+    Console.WriteLine("Target met.");
+}
 return 0;

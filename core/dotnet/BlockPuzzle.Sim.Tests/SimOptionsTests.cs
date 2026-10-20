@@ -16,4 +16,19 @@ public class SimOptionsTests
         Assert.Equal(games, options.Games);
         Assert.Equal(players, options.Players);
     }
+
+    [Fact]
+    public void Check_target_is_an_opt_in_flag()
+    {
+        Assert.True(Parse("--check-target", "--profile", "baseline").CheckTarget);
+        Assert.False(Parse().CheckTarget);
+    }
+
+    [Theory]
+    [InlineData("--bot", "random")]
+    [InlineData("--profile", "hard")]
+    public void Check_target_needs_the_greedy_bot_and_the_baseline_profile(string option, string value)
+    {
+        Assert.Throws<ArgumentException>(() => SimOptions.Parse(new[] { "--check-target", option, value }));
+    }
 }

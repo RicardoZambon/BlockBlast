@@ -10,6 +10,7 @@ public sealed class SimOptions
     public string Bot { get; private set; } = "greedy";
     public IReadOnlyList<string> Profiles { get; private set; } = AllProfiles;
     public ulong Seed { get; private set; } = 1;
+    public bool CheckTarget { get; private set; }
 
     /// <summary>
     /// Simulated players needed to play exactly Games games. Each plays up to GamesPerPlayer games in a row,
@@ -25,6 +26,7 @@ public sealed class SimOptions
           --bot greedy|random   who plays (default greedy)
           --profile NAME        gentle, baseline, hard or all (default all)
           --seed N              base seed (default 1)
+          --check-target        exit with code 2 if baseline + greedy misses the difficulty target
         """;
 
     /// <summary>Returns null for --help; throws ArgumentException or FormatException for bad input.</summary>
@@ -45,6 +47,7 @@ public sealed class SimOptions
                     options.Profiles = profile == "all" ? AllProfiles : new[] { profile };
                     break;
                 case "--seed": options.Seed = ulong.Parse(Value()); break;
+                case "--check-target": options.CheckTarget = true; break;
                 case "--help" or "-h": return null;
                 default: throw new ArgumentException($"Unknown option '{args[i]}'.");
             }
@@ -56,6 +59,8 @@ public sealed class SimOptions
         {
             if (!AllProfiles.Contains(profile)) throw new ArgumentException($"Unknown profile '{profile}'.");
         }
+        if (options.CheckTarget && (options.Bot != "greedy" || !options.Profiles.Contains("baseline")))
+            throw new ArgumentException("--check-target needs the greedy bot and the baseline profile.");
         return options;
     }
 }
