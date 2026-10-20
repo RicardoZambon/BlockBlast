@@ -76,6 +76,10 @@ namespace BlockPuzzle.Game
             return TraySlotCenter(slot) + new Vector2(-width * scaledCell / 2, height * scaledCell / 2);
         }
 
+        /// <summary>Where the pointer goes so a dragged piece's top-left lands on (row, col): DraggedTopLeft turned around.</summary>
+        public Vector2 PointerFor(int row, int col, int width, int height) =>
+            BoardTopLeft + new Vector2((col + width / 2f) * CellSize, -(row + LiftCells + height) * CellSize);
+
         /// <summary>Where a dragged piece's top-left corner goes: centred on the pointer, its bottom edge LiftCells above it.</summary>
         public Vector2 DraggedTopLeft(Vector2 pointerWorld, int width, int height) =>
             pointerWorld + new Vector2(-width * CellSize / 2, (LiftCells + height) * CellSize);

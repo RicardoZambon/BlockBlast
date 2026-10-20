@@ -12,8 +12,10 @@ namespace BlockPuzzle.Game
 
         /// <param name="topLeftRow">Where the dragged piece's top-left corner is, in cells from the board's top-left corner.</param>
         /// <param name="topLeftCol">The same, across.</param>
+        /// <param name="onlyRow">With onlyCol, the one anchor allowed, as in the tutorial; -1 allows any.</param>
         /// <returns>False when no legal spot is close enough. Allocates nothing.</returns>
-        public static bool TryFind(GameSession game, int slot, float topLeftRow, float topLeftCol, out int row, out int col)
+        public static bool TryFind(GameSession game, int slot, float topLeftRow, float topLeftCol, out int row, out int col,
+            int onlyRow = -1, int onlyCol = -1)
         {
             int roundedRow = Mathf.FloorToInt(topLeftRow + 0.5f);
             int roundedCol = Mathf.FloorToInt(topLeftCol + 0.5f);
@@ -29,6 +31,7 @@ namespace BlockPuzzle.Game
                 {
                     int r = roundedRow + dr;
                     int c = roundedCol + dc;
+                    if (onlyRow >= 0 && (r != onlyRow || c != onlyCol)) continue;
                     if (!game.CanPlace(slot, r, c)) continue;
                     float distanceSquared = (r - topLeftRow) * (r - topLeftRow) + (c - topLeftCol) * (c - topLeftCol);
                     if (distanceSquared >= best) continue;
