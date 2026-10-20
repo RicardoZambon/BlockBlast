@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.TestTools.Constraints;
+using static BlockPuzzle.Game.Tests.TestDrags;
 using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace BlockPuzzle.Game.Tests
@@ -50,43 +51,8 @@ namespace BlockPuzzle.Game.Tests
             return _controller;
         }
 
-        /// <summary>Saves a game in progress in the given position, so the next Boot resumes it instead of dealing at random.</summary>
-        void SavePosition(GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0)
-        {
-            var snapshot = position.ToSnapshot();
-            snapshot.GameIndex = gameIndex;
-            snapshot.RecentQuickLosses = recentQuickLosses;
-            new SaveStore(SavePath).Write(new SaveData { HasGame = true, Game = snapshot, NextGameIndex = nextGameIndex });
-        }
-
-        // From GameSessionTests.A_placement_can_end_the_game: placing "i2h" at (0, 1) leaves no room for the two 3x3 squares.
-        static readonly Board OneMoveFromGameOver = Board.Parse(
-            "#...#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#",
-            "#.#.#.#.",
-            ".#.#.#.#");
-
-        /// <summary>The pointer position whose dragged piece has its top-left corner exactly on (row, col).</summary>
-        static Vector2 PointerFor(BoardLayout layout, PieceShape shape, int row, int col)
-        {
-            float cell = layout.CellSize;
-            Vector2 topLeft = layout.BoardTopLeft + new Vector2(col * cell, -row * cell);
-            return topLeft + new Vector2(shape.Width / 2f * cell, -(BoardLayout.LiftCells + shape.Height) * cell);
-        }
-
-        static IEnumerator DragAndRelease(GameController game, int slot, Vector2 to)
-        {
-            Assert.IsTrue(game.Drag.Press(game.Layout.TraySlotCenter(slot)));
-            yield return null;
-            game.Drag.Drag(to);
-            yield return null;
-            game.Drag.Release(to);
-            yield return null;
-        }
+        void SavePosition(GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0) =>
+            TestGames.Save(SavePath, position, gameIndex, recentQuickLosses, nextGameIndex);
 
         static IEnumerator WaitForReturn()
         {
@@ -254,7 +220,7 @@ namespace BlockPuzzle.Game.Tests
         public IEnumerator Game_over_shows_the_panel_and_play_again_starts_the_next_game()
         {
             // The saved NextGameIndex (9) is stale on purpose: the next game must follow the finished game's own index (4).
-            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"), gameIndex: 4, recentQuickLosses: 1, nextGameIndex: 9);
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"), gameIndex: 4, recentQuickLosses: 1, nextGameIndex: 9);
 
             var game = Boot();
             yield return null;
@@ -315,7 +281,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Game_over_shows_its_panel_even_when_saving_fails()
         {
-            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"));
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
             File.SetAttributes(SavePath, FileAttributes.ReadOnly);   // it still loads, but saving over it fails
             var game = Boot();
             yield return null;
@@ -431,7 +397,7 @@ namespace BlockPuzzle.Game.Tests
         [UnityTest]
         public IEnumerator Pause_home_and_game_over_home_raise_HomeRequested()
         {
-            SavePosition(TestGames.Position(OneMoveFromGameOver, "i2h", "o3", "o3"));
+            SavePosition(TestGames.Position(TestBoards.OneMoveFromGameOver, "i2h", "o3", "o3"));
             var game = Boot();
             yield return null;
             int homes = 0;

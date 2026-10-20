@@ -2,9 +2,6 @@
 using System;
 using BlockPuzzle.Core;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
-using UnityEngine.UI;
 
 namespace BlockPuzzle.Game
 {
@@ -75,13 +72,13 @@ namespace BlockPuzzle.Game
             Tray.Build(Layout);
 
             // The HUD sits exactly over the score band the layout reserves, which is already inside the safe area.
-            var canvas = CreateCanvas();
+            var canvas = UiFactory.Canvas(transform, "Canvas");
             Hud = HudView.Create(canvas, ScreenFraction(camera, Layout.BoardTopLeft.y), ScreenFraction(camera, Layout.ScoreBandTop), TogglePause);
             DebugOverlay.CreateIfDevelopment(SafeAreaPanel.Create(canvas));   // development builds only
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
             GameOver = GameOverView.Create(canvas, PlayAgain, RequestHome);
             GameOver.Hide();
-            EnsureEventSystem();
+            UiFactory.EnsureEventSystem(transform);   // App already has one; a GameController on its own needs its own
 
             Drag = gameObject.AddComponent<DragController>();
             Drag.Init(Layout, Board, Tray, () => Game, OnPlaced);
@@ -213,29 +210,6 @@ namespace BlockPuzzle.Game
             var child = new GameObject(name);
             child.transform.SetParent(transform, false);
             return child.AddComponent<T>();
-        }
-
-        Transform CreateCanvas()
-        {
-            var go = new GameObject("Canvas", typeof(RectTransform));
-            go.transform.SetParent(transform, false);
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 0.5f;
-            go.AddComponent<GraphicRaycaster>();
-            return go.transform;
-        }
-
-        void EnsureEventSystem()
-        {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
-            var go = new GameObject("EventSystem");
-            go.transform.SetParent(transform, false);
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
         }
 
         /// <summary>The banner slot in world units: BannerSlot's pixels as a share of the screen height. Nothing without a screen.</summary>

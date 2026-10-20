@@ -15,7 +15,9 @@ namespace BlockPuzzle.Game
             _path = path;
         }
 
-        public static string DefaultPath => Path.Combine(Application.persistentDataPath, "save.json");
+        public const string FileName = "save.json";
+
+        public static string DefaultPath => Path.Combine(Application.persistentDataPath, FileName);
 
         public void Write(SaveData data) => JsonFile.Write(_path, data);
 

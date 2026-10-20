@@ -28,6 +28,17 @@ namespace BlockPuzzle.Game.Tests
             "###.###.",
             "........");
 
+        /// <summary>From GameSessionTests.A_placement_can_end_the_game: placing "i2h" at (0, 1) leaves no room for two 3x3 squares.</summary>
+        public static readonly Board OneMoveFromGameOver = Board.Parse(
+            "#...#.#.",
+            ".#.#.#.#",
+            "#.#.#.#.",
+            ".#.#.#.#",
+            "#.#.#.#.",
+            ".#.#.#.#",
+            "#.#.#.#.",
+            ".#.#.#.#");
+
         /// <summary>Row 0 needs two more cells to clear.</summary>
         public static readonly Board AlmostFullRow = Board.Parse(
             "######..",

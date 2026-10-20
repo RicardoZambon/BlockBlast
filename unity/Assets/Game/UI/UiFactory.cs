@@ -1,6 +1,8 @@
 #nullable enable
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace BlockPuzzle.Game
@@ -17,6 +19,30 @@ namespace BlockPuzzle.Game
                 if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 return _font;
             }
+        }
+
+        /// <summary>A screen-space canvas scaled from a 1080×1920 reference, so sizes read the same on every phone.</summary>
+        public static Transform Canvas(Transform parent, string name)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            go.AddComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = go.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            scaler.matchWidthOrHeight = 0.5f;
+            go.AddComponent<GraphicRaycaster>();
+            return go.transform;
+        }
+
+        /// <summary>Creates the EventSystem that buttons need, under parent, unless an active one already exists.</summary>
+        public static void EnsureEventSystem(Transform parent)
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<EventSystem>() != null) return;
+            var go = new GameObject("EventSystem");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<EventSystem>();
+            go.AddComponent<InputSystemUIInputModule>();
         }
 
         public static RectTransform Rect(Transform parent, string name, Vector2 anchor, Vector2 size, Vector2 position)

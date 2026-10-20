@@ -18,7 +18,9 @@ namespace BlockPuzzle.Game
             _path = path;
         }
 
-        public static string DefaultPath => Path.Combine(Application.persistentDataPath, "settings.json");
+        public const string FileName = "settings.json";
+
+        public static string DefaultPath => Path.Combine(Application.persistentDataPath, FileName);
 
         public SettingsData Load() =>
             JsonFile.TryRead(_path, out SettingsData data) && data.Version == SettingsData.CurrentVersion ? data : new SettingsData();

@@ -18,5 +18,14 @@ namespace BlockPuzzle.Game.Tests
             };
             return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings());
         }
+
+        /// <summary>Saves a game in progress in the given position, so the next boot resumes it instead of dealing at random.</summary>
+        public static void Save(string savePath, GameSession position, int gameIndex = 0, int recentQuickLosses = 0, int nextGameIndex = 0)
+        {
+            var snapshot = position.ToSnapshot();
+            snapshot.GameIndex = gameIndex;
+            snapshot.RecentQuickLosses = recentQuickLosses;
+            new SaveStore(savePath).Write(new SaveData { HasGame = true, Game = snapshot, NextGameIndex = nextGameIndex });
+        }
     }
 }
