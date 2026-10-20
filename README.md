@@ -11,12 +11,16 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 |---|---|
 | `core/src/` | The rules engine: plain C# 9 with no Unity references. Also a local Unity package (`package.json`, `.asmdef`) |
 | `core/dotnet/BlockPuzzle.Core/` | .NET project that compiles `core/src` (netstandard2.1) |
-| `core/dotnet/BlockPuzzle.Core.Tests/` | xUnit tests |
+| `core/dotnet/BlockPuzzle.Core.Tests/` | xUnit tests for the engine |
 | `core/dotnet/BlockPuzzle.Sim/` | Simulator: bots play thousands of games to tune the piece generator |
+| `core/dotnet/BlockPuzzle.Sim.Tests/` | xUnit tests for the simulator |
 
 ## Run
 
 ```bash
 dotnet test core/BlockPuzzle.slnx
 dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- --games 20000
+dotnet run --project core/dotnet/BlockPuzzle.Sim -c Release -- --games 20000 --profile baseline --check-target
 ```
+
+CI runs the tests and the last command, which exits with code 2 if the greedy bot on the baseline profile misses the Phase 1 difficulty target: a median of 80–150 placements, with under 5% of games ending before placement 20.
