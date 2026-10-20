@@ -36,11 +36,12 @@ namespace BlockPuzzle.Game
         public void Boot(string savePath)
         {
             if (_booted) return;
+            var camera = Camera.main;
+            if (camera == null) throw new InvalidOperationException("GameController needs a camera tagged MainCamera.");
             _booted = true;
             Application.targetFrameRate = 60;
             _store = new SaveStore(savePath);
 
-            var camera = Camera.main;
             Layout = new BoardLayout(SafeWorldRect(camera));
             Board = Child<BoardView>("Board");
             Board.Build(Layout);
@@ -59,9 +60,19 @@ namespace BlockPuzzle.Game
             gameObject.AddComponent<PointerInput>().Init(camera, Drag);
 
             if (_store.TryRead(out var saved)) _save = saved;
+            // A damaged save can hold impossible counters; the GameSession constructor would refuse them on every launch.
+            _save.NextGameIndex = Math.Max(0, _save.NextGameIndex);
+            _save.NextRecentQuickLosses = Math.Max(0, _save.NextRecentQuickLosses);
+            _save.BestScore = Math.Max(0, _save.BestScore);
+
             _game = _save.HasGame ? Resume(_save.Game) : null;
-            if (_game == null) StartNextGame();
-            else RenderAll();
+            if (_game == null)
+            {
+                StartNextGame();
+                return;
+            }
+            RenderAll();
+            if (_game.IsGameOver) FinishGame();   // a save made on the last move, before the game-over save
         }
 
         /// <summary>Starts the next game; the Play again button calls this.</summary>
@@ -75,8 +86,8 @@ namespace BlockPuzzle.Game
         {
             _game = new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
                 _save.NextGameIndex, _save.NextRecentQuickLosses);
-            SaveGameInProgress();
             RenderAll();
+            SaveGameInProgress();
         }
 
         static GameSession? Resume(GameSnapshot snapshot)
@@ -93,27 +104,42 @@ namespace BlockPuzzle.Game
 
         void OnPlaced(PlacementOutcome outcome)
         {
+            RenderAll();
+            if (Game.IsGameOver) FinishGame();
+            else SaveGameInProgress();
+        }
+
+        /// <summary>Shows game over, then saves what the next game starts with.</summary>
+        void FinishGame()
+        {
             var game = Game;
             if (game.Score > _save.BestScore) _save.BestScore = game.Score;
-            RenderAll();
-            if (!game.IsGameOver)
-            {
-                SaveGameInProgress();
-                return;
-            }
-
+            GameOver.Show(game.Score, _save.BestScore);
             _save.HasGame = false;
             _save.NextGameIndex = game.GameIndex + 1;
             _save.NextRecentQuickLosses = game.NextRecentQuickLosses;
-            _store?.Write(_save);
-            GameOver.Show(game.Score, _save.BestScore);
+            Save();
         }
 
         void SaveGameInProgress()
         {
+            if (Game.Score > _save.BestScore) _save.BestScore = Game.Score;
             _save.HasGame = true;
             _save.Game = Game.ToSnapshot();
-            _store?.Write(_save);
+            Save();
+        }
+
+        /// <summary>A failed save (full storage, a file another app holds) must not stop the game; the next move tries again.</summary>
+        void Save()
+        {
+            try
+            {
+                _store?.Write(_save);
+            }
+            catch (Exception e) when (e is System.IO.IOException || e is UnauthorizedAccessException)
+            {
+                Debug.LogWarning("Couldn't save the game: " + e.Message);
+            }
         }
 
         void RenderAll()
@@ -121,7 +147,7 @@ namespace BlockPuzzle.Game
             var game = Game;
             Board.Render(game.Board);
             Tray.Render(game);
-            Hud.Show(game.Score, _save.BestScore);
+            Hud.Show(game.Score, Math.Max(game.Score, _save.BestScore));
         }
 
         T Child<T>(string name) where T : Component

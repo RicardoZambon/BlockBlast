@@ -32,7 +32,8 @@ namespace BlockPuzzle.Game
             overlay._text.alignment = TextAnchor.LowerLeft;
             overlay._determinism = EngineChecks.CheckDeterminism();
 
-            var button = UiFactory.Rect(canvas, "Bench", new Vector2(1f, 0f), new Vector2(220, 100), new Vector2(-140, 80));
+            // Top right, in the score band: PointerInput reads the pointer directly, so a button over the tray would also pick up a piece.
+            var button = UiFactory.Rect(canvas, "Bench", new Vector2(1f, 1f), new Vector2(220, 100), new Vector2(-140, -70));
             button.gameObject.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.2f);
             button.gameObject.AddComponent<Button>().onClick.AddListener(overlay.RunBenchmark);
             UiFactory.Text(UiFactory.Stretch(button, "Label"), 40, Color.white).text = "Bench";

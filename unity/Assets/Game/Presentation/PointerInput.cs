@@ -6,7 +6,7 @@ namespace BlockPuzzle.Game
 {
     /// <summary>
     /// Feeds the primary pointer (mouse, or the first finger on a touchscreen) to the DragController, so other
-    /// fingers are ignored. Pausing the app sends a dragged piece back.
+    /// fingers are ignored. A touch the system takes away, a pause or a loss of focus sends a dragged piece back.
     /// </summary>
     public sealed class PointerInput : MonoBehaviour
     {
@@ -25,15 +25,33 @@ namespace BlockPuzzle.Game
             var pointer = Pointer.current;
             if (pointer == null) return;
 
+            // Android cancels a touch when the notification shade, a back gesture or a dialog takes it; that ends as a
+            // release, but the player didn't drop the piece.
+            bool cancelled = pointer is Touchscreen touchscreen &&
+                             touchscreen.primaryTouch.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Canceled;
             Vector2 world = _camera.ScreenToWorldPoint(pointer.position.ReadValue());
-            if (pointer.press.wasPressedThisFrame) _drag.Press(world);
-            else if (pointer.press.isPressed) _drag.Drag(world);
-            if (pointer.press.wasReleasedThisFrame) _drag.Release(world);
+            Apply(pointer.press.wasPressedThisFrame, pointer.press.isPressed, pointer.press.wasReleasedThisFrame, cancelled, world);
+        }
+
+        /// <summary>One frame of the primary pointer, in world units. A cancelled release sends the piece back instead of dropping it.</summary>
+        public void Apply(bool pressedThisFrame, bool held, bool releasedThisFrame, bool cancelled, Vector2 world)
+        {
+            if (_drag == null) return;
+            if (pressedThisFrame) _drag.Press(world);
+            else if (held) _drag.Drag(world);
+            if (!releasedThisFrame) return;
+            if (cancelled) _drag.Cancel();
+            else _drag.Release(world);
         }
 
         void OnApplicationPause(bool paused)
         {
             if (paused && _drag != null) _drag.Cancel();
+        }
+
+        void OnApplicationFocus(bool focused)
+        {
+            if (!focused && _drag != null) _drag.Cancel();
         }
     }
 }

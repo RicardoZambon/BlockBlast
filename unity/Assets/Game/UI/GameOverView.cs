@@ -15,7 +15,7 @@ namespace BlockPuzzle.Game
         {
             var root = UiFactory.Stretch(canvas, "Game over");
             var dim = root.gameObject.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.75f);   // also blocks presses on the board behind it
+            dim.color = new Color(0f, 0f, 0f, 0.75f);   // drags are already refused here: the game is over
 
             var view = root.gameObject.AddComponent<GameOverView>();
             view._playAgain = playAgain;

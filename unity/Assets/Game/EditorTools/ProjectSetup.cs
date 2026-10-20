@@ -40,10 +40,14 @@ namespace BlockPuzzle.Game.EditorTools
             PlayerSettings.iOS.targetOSVersionString = "15.0";
             PlayerSettings.SplashScreen.show = false;
 
-            // Input System package only (1); there is no public API for this setting.
+            // No public API for these two: Input System package only (1), and no hardware statistics sent to Unity.
             var playerSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
             playerSettings.FindProperty("activeInputHandler").intValue = 1;
+            playerSettings.FindProperty("submitAnalytics").boolValue = false;
             playerSettings.ApplyModifiedProperties();
+
+            // Nothing collects data before the consent flow exists (master plan, Privacy).
+            UnityEditor.EngineDiagnostics.EngineDiagnosticsSettings.enabled = false;
 
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();

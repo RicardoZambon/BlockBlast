@@ -1,4 +1,5 @@
 #nullable enable
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
@@ -31,6 +32,11 @@ namespace BlockPuzzle.Game.Tests
 
             var playerSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
             Assert.AreEqual(1, playerSettings.FindProperty("activeInputHandler").intValue, "Input System package only");
+
+            // Nothing collects data before the consent flow exists (master plan, Privacy).
+            Assert.IsFalse(playerSettings.FindProperty("submitAnalytics").boolValue, "hardware statistics");
+            Assert.IsFalse(UnityEditor.EngineDiagnostics.EngineDiagnosticsSettings.enabled, "engine diagnostics");
+            StringAssert.DoesNotContain("analytics", File.ReadAllText("Packages/manifest.json"));
 
             CollectionAssert.AreEqual(new[] { "Assets/Game/Scenes/Game.unity" }, EditorBuildSettings.scenes.Select(scene => scene.path).ToArray());
         }
