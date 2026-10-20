@@ -19,21 +19,35 @@ if (options is null)
     return 0;
 }
 
-Console.WriteLine($"{options.Players * options.GamesPerPlayer:N0} games per profile " +
-                  $"({options.Players:N0} players x {options.GamesPerPlayer} games), bot: {options.Bot}, seed: {options.Seed}");
+Console.WriteLine($"{options.Games:N0} games per profile " +
+                  $"({options.Players:N0} players, up to {options.GamesPerPlayer} games each), bot: {options.Bot}, seed: {options.Seed}");
 Console.WriteLine();
 Console.WriteLine(Report.Header);
 
+GameResult[]? targetResults = null;
 foreach (string profile in options.Profiles)
 {
     var settings = GeneratorSettings.ForProfile(profile);
     var stopwatch = Stopwatch.StartNew();
-    var results = SimulationRunner.Run(PieceCatalog.Standard, settings, new ScoringSettings(), options.Bot, options.Players, options.GamesPerPlayer, options.Seed);
+    var results = SimulationRunner.Run(PieceCatalog.Standard, settings, new ScoringSettings(), options.Bot, options.Games, options.GamesPerPlayer, options.Seed);
     Console.WriteLine(Report.Row(profile, options.Bot, results, stopwatch.Elapsed));
+    if (profile == TargetCheck.Profile) targetResults = results;
 }
 
 Console.WriteLine();
-Console.WriteLine("Columns are placements per game except: <20 = games ending before placement 20, lines = lines per game,");
+Console.WriteLine($"Columns are placements per game except: <{Report.EarlyEndPlacements} = games ending before placement {Report.EarlyEndPlacements}, lines = lines per game,");
 Console.WriteLine("score = median score, streak90 = 90th-percentile best streak, mercy = mercy games, capped = games stopped at the cap.");
-Console.WriteLine("Target for baseline + greedy: median 80-150 placements, under 5% of games ending before 20.");
+Console.WriteLine($"Target for {TargetCheck.Profile} + {TargetCheck.Bot}: {TargetCheck.Description}.");
+
+if (options.CheckTarget)
+{
+    // Parse guarantees the target's bot and profile, so targetResults is set.
+    string? miss = TargetCheck.Miss(targetResults!);
+    if (miss != null)
+    {
+        Console.Error.WriteLine($"Target missed: {miss}.");
+        return 2;
+    }
+    Console.WriteLine("Target met.");
+}
 return 0;

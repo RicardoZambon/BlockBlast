@@ -120,15 +120,14 @@ namespace BlockPuzzle.Core
                 }
             }
 
-            if (!RowHasCell(mask, 0) || !RowHasCell(mask, height - 1) || !ColumnHasCell(mask, 0) || !ColumnHasCell(mask, width - 1))
+            if (!HasCell(mask, Board.RowMask(0)) || !HasCell(mask, Board.RowMask(height - 1)) ||
+                !HasCell(mask, Board.ColumnMask(0)) || !HasCell(mask, Board.ColumnMask(width - 1)))
                 throw new ArgumentException("The art must not have an empty edge row or column.", nameof(rows));
 
             return new PieceShape(id, category, width, height, cells, mask);
         }
 
-        static bool RowHasCell(ulong mask, int row) => (mask & (0xFFUL << (row * Board.Size))) != 0;
-
-        static bool ColumnHasCell(ulong mask, int col) => (mask & (0x0101010101010101UL << col)) != 0;
+        static bool HasCell(ulong mask, ulong line) => (mask & line) != 0;
 
         public override string ToString() => Id;
     }

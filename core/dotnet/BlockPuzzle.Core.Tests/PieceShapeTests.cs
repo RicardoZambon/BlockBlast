@@ -75,6 +75,8 @@ public class PieceShapeTests
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("b", PieceCategory.Small, "##", "#"));
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("c", PieceCategory.Small, "..", "##"));
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("d", PieceCategory.Small, "#.", "#."));
+        Assert.Throws<ArgumentException>(() => PieceShape.FromRows("f", PieceCategory.Small, "##", ".."));
+        Assert.Throws<ArgumentException>(() => PieceShape.FromRows("g", PieceCategory.Small, ".#", ".#"));
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("e", PieceCategory.Small, "#x"));
         Assert.Throws<ArgumentException>(() => PieceShape.FromRows("", PieceCategory.Small, "#"));
     }

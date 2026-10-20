@@ -315,6 +315,19 @@ public class GameSessionTests
     }
 
     [Fact]
+    public void Setting_MercyAfterQuickLosses_to_0_turns_mercy_off()
+    {
+        var settings = GeneratorSettings.Baseline();
+        settings.MercyAfterQuickLosses = 0;
+
+        var game = new GameSession(PieceCatalog.Standard, settings, new ScoringSettings(), seed: 4, recentQuickLosses: 5);
+
+        Assert.False(game.IsMercyGame);
+        var normal = new PieceGenerator(PieceCatalog.Standard, GeneratorSettings.Baseline(), new Pcg32(4)).Deal(Board.Empty, 0, mercyGame: false);
+        Assert.Equal(string.Join(",", normal.Select(p => p.Id)), TrayIds(game));
+    }
+
+    [Fact]
     public void A_mercy_game_deals_from_the_mercy_weights()
     {
         for (ulong seed = 1; seed <= 20; seed++)

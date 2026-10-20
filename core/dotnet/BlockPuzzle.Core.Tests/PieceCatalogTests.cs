@@ -49,6 +49,15 @@ public class PieceCatalogTests
     }
 
     [Fact]
+    public void Shapes_cannot_be_changed_through_the_list()
+    {
+        var shapes = PieceCatalog.Standard.Shapes;
+
+        Assert.False(shapes is PieceShape[]);
+        Assert.Throws<NotSupportedException>(() => ((IList<PieceShape>)shapes)[0] = shapes[0]);
+    }
+
+    [Fact]
     public void Duplicate_ids_are_rejected()
     {
         var shapes = new[]

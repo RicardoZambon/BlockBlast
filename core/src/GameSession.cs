@@ -109,8 +109,7 @@ namespace BlockPuzzle.Core
         public bool TryRevive()
         {
             if (!IsGameOver || Revived) return false;
-            var rescue = _generator.DealRescue(Board);
-            for (int i = 0; i < _tray.Length; i++) _tray[i] = rescue[i];
+            SetTray(_generator.DealRescue(Board));
             Revived = true;
             UpdateGameOver();
             return true;
@@ -195,7 +194,7 @@ namespace BlockPuzzle.Core
                 Revived = snapshot.Revived,
             };
             session._score = new ScoreState(snapshot.Score, snapshot.Streak, snapshot.MissesSinceClear, snapshot.MaxStreak);
-            for (int i = 0; i < tray.Length; i++) session._tray[i] = tray[i];
+            session.SetTray(tray);
             session.UpdateGameOver();
             return session;
         }
@@ -216,11 +215,9 @@ namespace BlockPuzzle.Core
             return true;
         }
 
-        void DealTray()
-        {
-            var dealt = _generator.Deal(Board, Placements, IsMercyGame);
-            for (int i = 0; i < _tray.Length; i++) _tray[i] = dealt[i];
-        }
+        void DealTray() => SetTray(_generator.Deal(Board, Placements, IsMercyGame));
+
+        void SetTray(PieceShape?[] pieces) => Array.Copy(pieces, _tray, _tray.Length);
 
         void UpdateGameOver()
         {

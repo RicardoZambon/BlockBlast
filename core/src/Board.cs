@@ -24,6 +24,20 @@ namespace BlockPuzzle.Core
 
         public static int BitIndex(int row, int col) => row * Size + col;
 
+        /// <summary>The cells of one row.</summary>
+        public static ulong RowMask(int row)
+        {
+            if ((uint)row >= Size) throw new ArgumentOutOfRangeException(nameof(row));
+            return 0xFFUL << (row * Size);
+        }
+
+        /// <summary>The cells of one column.</summary>
+        public static ulong ColumnMask(int col)
+        {
+            if ((uint)col >= Size) throw new ArgumentOutOfRangeException(nameof(col));
+            return 0x0101010101010101UL << col;
+        }
+
         public bool IsFilled(int row, int col)
         {
             if ((uint)row >= Size) throw new ArgumentOutOfRangeException(nameof(row));
@@ -108,8 +122,8 @@ namespace BlockPuzzle.Core
             var masks = new ulong[2 * Size];
             for (int i = 0; i < Size; i++)
             {
-                masks[i] = 0xFFUL << (i * Size);              // row i
-                masks[Size + i] = 0x0101010101010101UL << i;  // column i
+                masks[i] = RowMask(i);
+                masks[Size + i] = ColumnMask(i);
             }
             return masks;
         }

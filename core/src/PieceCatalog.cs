@@ -11,25 +11,26 @@ namespace BlockPuzzle.Core
     /// </summary>
     public sealed class PieceCatalog
     {
-        readonly PieceShape[] _shapes;
         readonly Dictionary<string, PieceShape> _byId = new Dictionary<string, PieceShape>(StringComparer.Ordinal);
 
         public PieceCatalog(IEnumerable<PieceShape> shapes)
         {
             if (shapes == null) throw new ArgumentNullException(nameof(shapes));
-            _shapes = new List<PieceShape>(shapes).ToArray();
-            if (_shapes.Length == 0) throw new ArgumentException("A catalog needs at least one shape.", nameof(shapes));
-            foreach (var shape in _shapes)
+            var copy = new List<PieceShape>(shapes).ToArray();
+            if (copy.Length == 0) throw new ArgumentException("A catalog needs at least one shape.", nameof(shapes));
+            foreach (var shape in copy)
             {
                 if (_byId.ContainsKey(shape.Id)) throw new ArgumentException($"Duplicate shape id '{shape.Id}'.", nameof(shapes));
                 _byId.Add(shape.Id, shape);
             }
+            Shapes = Array.AsReadOnly(copy);
         }
 
         /// <summary>The standard set: 1 tiny, 8 small, 19 medium and 9 large shapes.</summary>
         public static PieceCatalog Standard { get; } = CreateStandard();
 
-        public IReadOnlyList<PieceShape> Shapes => _shapes;
+        /// <summary>The shapes in catalog order. A read-only wrapper, so a cast can't change the catalog.</summary>
+        public IReadOnlyList<PieceShape> Shapes { get; }
 
         public PieceShape this[string id] =>
             _byId.TryGetValue(id, out var shape) ? shape : throw new KeyNotFoundException($"Unknown shape id '{id}'.");

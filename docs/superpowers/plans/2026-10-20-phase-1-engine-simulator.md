@@ -47,8 +47,8 @@ This plan covers master-plan tasks 1.1–1.7 ([master plan](2026-10-15-block-puz
 |---|---|
 | `.gitignore`, `.gitattributes` | Ignore .NET/Unity build output; normalize line endings |
 | `README.md` | What the repo is, layout, how to run tests and the simulator |
-| `.github/workflows/core.yml` | CI: run the engine tests and a short simulator run |
-| `core/BlockPuzzle.slnx` | Solution with the three .NET projects |
+| `.github/workflows/core.yml` | CI: run the tests and check the simulator's difficulty target |
+| `core/BlockPuzzle.slnx` | Solution with the four .NET projects |
 | `core/src/package.json`, `core/src/BlockPuzzle.Core.asmdef` | Makes `core/src` a local Unity package with no engine references |
 | `core/src/Board.cs` | 64-bit board: fits, place, simultaneous row/column clears, text parsing |
 | `core/src/PlaceResult.cs` | Result of a placement: new board, lines, cleared cells |
@@ -64,7 +64,8 @@ This plan covers master-plan tasks 1.1–1.7 ([master plan](2026-10-15-block-puz
 | `core/src/AdPolicySettings.cs`, `core/src/AdPolicy.cs` | When an interstitial may show |
 | `core/dotnet/BlockPuzzle.Core/BlockPuzzle.Core.csproj` | Compiles `../../src/**/*.cs` for .NET |
 | `core/dotnet/BlockPuzzle.Core.Tests/*` | xUnit tests, one file per engine area |
-| `core/dotnet/BlockPuzzle.Sim/*` | Simulator: options, bots, runner, report |
+| `core/dotnet/BlockPuzzle.Sim/*` | Simulator: options, bots, runner, report, target check |
+| `core/dotnet/BlockPuzzle.Sim.Tests/*` | xUnit tests for the simulator |
 
 Commit messages end with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -3125,7 +3126,7 @@ Deferred, minor today:
 - **Phase 3 (ads):**
   - Document that `gamesCompleted` includes the game that just ended.
   - Make `TryRevive` not spend the revive when the rescue tray can't be placed. That can only happen with a custom catalog.
-- **CI:** move `actions/checkout` and `actions/setup-dotnet` to their current majors (v4 targets Node 20), and add `permissions: contents: read`.
+- **CI** (done in the review follow-up below): move `actions/checkout` and `actions/setup-dotnet` to their current majors (v4 targets Node 20), and add `permissions: contents: read`.
 - **Small:**
   - The simulator's percentile index overflows above about 23.8 million games.
   - A null shape, a null row or an out-of-range category throws `NullReferenceException` or `IndexOutOfRangeException` instead of `ArgumentException`.
@@ -3150,9 +3151,37 @@ Left open from this review:
 - **Task 1.8:**
   - `TraySolver` is an unpruned search. On adversarial boards a WholeTray deal can take about 2.4 ms on desktop, which could cost a frame on a low-end phone. Measure it there, and prune if needed.
   - Cache the `CanClearLine` filter per deal, and avoid allocating a tray array on every deal.
-- **Small:**
+- **Small** (done in the review follow-up below):
   - CI doesn't check the simulator's difficulty target.
   - `--games` is rounded down to a multiple of games per player.
   - Three more tests are missing: that MaxStreak keeps the best streak, that `MercyAfterQuickLosses = 0` turns mercy off, and a board clear during a streak.
   - `PieceCatalog.Shapes` exposes its internal array.
   - Cleanups: profile and bot names are duplicated, the row and column masks are written out by hand in places, and the retry and tray-copy loops are repeated.
+
+### Review follow-up
+
+A follow-up PR fixed the small items above and the CI item from the first review, test-first. Each new test was checked against a code change that breaks it.
+- **CI:**
+  - Uses `actions/checkout@v7` and `actions/setup-dotnet@v6`, with `permissions: contents: read`.
+  - A new step fails the build when the greedy bot on the baseline profile misses the difficulty target (`--check-target`, 20,000 games).
+- **Simulator:**
+  - `--games` runs exactly that many games; the last player may play fewer.
+  - A new `BlockPuzzle.Sim.Tests` project covers the options, the runner, the target check and the bots, and pins a golden GreedyBot game.
+- **Tests:**
+  - MaxStreak keeps the best streak after a reset.
+  - `MercyAfterQuickLosses = 0` turns mercy off.
+  - A board clear during a streak gets the flat +300.
+- **Catalog:** `PieceCatalog.Shapes` is a read-only wrapper, built once.
+- **Cleanups:**
+  - `GeneratorSettings.ProfileNames` and `Bots.Names` are now the only lists of profile and bot names.
+  - `Board.RowMask` and `Board.ColumnMask` replace the hand-written masks.
+  - `PieceGenerator.DealPlaceable` and `GameSession.SetTray` replace the repeated loops.
+
+A fresh review of the follow-up found nothing critical or important. Its five minor findings were fixed too:
+- `SimulationRunner.Run` rejects counts below 1, instead of dividing by zero or returning empty results.
+- A golden seeded run pins each game's seed and slot, the random bot's seed and the mercy carry-over.
+- Boundary tests pin the target's edges: a median of exactly 80 or 150 passes, and exactly 5% of games ending early misses.
+- The report header and footnote take the early-end placement from `Report.EarlyEndPlacements`.
+- The file table above is current.
+
+The golden values didn't change. Neither did the 20,000-game medians: 155, 98 and 46 placements for gentle, baseline and hard. There are now 147 tests: 110 for the engine and 37 for the simulator.
