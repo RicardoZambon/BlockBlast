@@ -40,6 +40,9 @@ namespace BlockPuzzle.Game
         /// <summary>Whether the game Finished last recorded beat the best score from before it started.</summary>
         public virtual bool FinishedWithNewBest => false;
 
+        /// <summary>The analytics "mode" (classic or daily); empty for modes that log no game events, like the tutorial.</summary>
+        public virtual string AnalyticsName => "";
+
         /// <summary>What Share posts for a finished game.</summary>
         public virtual string ShareText(GameSession finished) => "";
 
@@ -148,6 +151,8 @@ namespace BlockPuzzle.Game
         public override int Best => _save.BestScore;
 
         public override bool CanRevive => true;
+
+        public override string AnalyticsName => "classic";
     }
 
     public enum DailyState
@@ -208,6 +213,8 @@ namespace BlockPuzzle.Game
         public override bool CanPlayAgain => false;
 
         public override bool CanShare => true;
+
+        public override string AnalyticsName => "daily";
 
         public override string ShareText(GameSession finished) => DailyShare.Text(_product, _today, finished.Score, Streak);
     }

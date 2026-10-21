@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using BlockPuzzle.Core;
 using UnityEngine;
@@ -35,6 +36,7 @@ namespace BlockPuzzle.Game
         readonly AdPolicySettings _adPolicy = new AdPolicySettings();
         DateTime? _lastFullScreenAd;
         bool _adsStarted;
+        ConsentGatedAnalytics _analytics = new ConsentGatedAnalytics(new StandInAnalytics());
         IReviewPrompt _review = new StandInReviewPrompt();
         IReminders _reminders = DefaultReminders();
         int _homeDay;
@@ -73,7 +75,8 @@ namespace BlockPuzzle.Game
         /// phone's language.
         /// </summary>
         public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null,
-            IConsentFlow? consent = null, IAdService? ads = null, IReviewPrompt? review = null, IReminders? reminders = null)
+            IConsentFlow? consent = null, IAdService? ads = null, IReviewPrompt? review = null, IReminders? reminders = null,
+            IAnalytics? analytics = null)
         {
             if (_booted) return;
             _booted = true;
@@ -85,6 +88,7 @@ namespace BlockPuzzle.Game
             if (ads != null) _ads = ads;
             if (review != null) _review = review;
             if (reminders != null) _reminders = reminders;
+            if (analytics != null) _analytics = new ConsentGatedAnalytics(analytics);
             _saveStore = new SaveStore(Path.Combine(folder, SaveStore.FileName));
             if (_saveStore.TryRead(out var saved)) _save = saved;
             _settingsStore = new SettingsStore(Path.Combine(folder, SettingsStore.FileName));
@@ -104,6 +108,8 @@ namespace BlockPuzzle.Game
             if (_adsStarted) return;
             _adsStarted = true;
             _ads.Initialize();
+            _analytics.Open();
+            _analytics.Log("consent_result", new Dictionary<string, object> { ["gdpr_applies"] = "unknown", ["att_status"] = "unknown" });   // real values come with UMP and ATT (3.2)
             Show(Current);   // the banner, if a game screen is already up
         }
 
@@ -149,6 +155,7 @@ namespace BlockPuzzle.Game
             {
                 CloseTutorial();
                 Tutorial = CreateGame("Tutorial", new TutorialMode(_save));
+                _analytics.Log("tutorial_begin");
                 Tutorial.Completed += OnTutorialCompleted;
                 Show(AppScreen.Tutorial);
                 return;
@@ -181,6 +188,7 @@ namespace BlockPuzzle.Game
 
         void OnTutorialCompleted()
         {
+            _analytics.Log("tutorial_complete");
             CloseTutorial();
             PlayOrContinue();   // the save says the tutorial is done now, so this starts Classic
         }
@@ -198,13 +206,15 @@ namespace BlockPuzzle.Game
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
             var game = go.AddComponent<GameController>();
-            game.Boot(_saveStore!, _save, mode, _share, _settings);
+            // Wired before Boot, which may already start a game (game_start) or end one (a save that was already over).
             game.HomeRequested += ShowHome;
             game.Ads = _ads;
+            game.Analytics = _analytics;
             game.BetweenGames = ShowInterstitialThen;
             game.FullScreenAdShown += () => _lastFullScreenAd = _utcNow();
             if (mode is ClassicMode) game.GameRecorded += () => OnClassicRecorded(game);
             else if (mode is DailyMode) game.GameRecorded += OnDailyRecorded;
+            game.Boot(_saveStore!, _save, mode, _share, _settings);
             return game;
         }
 
@@ -255,6 +265,8 @@ namespace BlockPuzzle.Game
         /// </summary>
         void OnDailyRecorded()
         {
+            var record = _save.Daily.Record;
+            _analytics.Log("daily_complete", new Dictionary<string, object> { ["score"] = record.LastScore, ["streak_days"] = record.Streak });
             if (RetentionRules.ShouldAskForReminders(_save.Daily.Record, _save.RemindersAsked))
             {
                 _save.RemindersAsked = true;   // written with the finished Daily
