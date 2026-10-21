@@ -1,0 +1,62 @@
+name: site
+
+# The game's website (master plan 0.5), from site/. The check runs on every change. Publishing to GitHub Pages waits
+# until you turn it on: Settings, Pages, Source "GitHub Actions", then the repository variable PAGES_ENABLED = true.
+# It refuses to publish while any [bracketed] placeholder is left.
+
+on:
+  pull_request:
+    paths: ['site/**', '.github/workflows/site.yml']
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: No scripts, frames or outside resources, so the site itself collects nothing
+        run: |
+          if grep -rniE '<script|<iframe|<img[^>]+src="https?:|<link[^>]+href="https?:|@import|url\(' site/; then
+            echo "::error::The site must load nothing from elsewhere and run no scripts."
+            exit 1
+          fi
+      - name: Every local link points at a file that exists
+        run: |
+          for f in $(grep -ohE 'href="[a-z0-9_-]+\.(html|css)"' site/*.html | sed 's/href="//; s/"$//' | sort -u); do
+            test -f "site/$f" || { echo "::error::site/$f is linked but missing."; exit 1; }
+          done
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Refuse to publish placeholders
+        run: |
+          if grep -rnE '\[[A-Z][A-Za-z ]+\]' site/; then
+            echo "::error::Replace the [bracketed] placeholders above before publishing the site."
+            exit 1
+          fi
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v5
