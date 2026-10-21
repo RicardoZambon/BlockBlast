@@ -1,0 +1,134 @@
+name: unity
+
+# Unity's tests on every pull request, and the Android and iOS builds on main (master plan 4.7), through GameCI.
+# Every job here needs a Unity licence, so until the repository has the UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD
+# secrets (README, "Automated builds") they're skipped, and only the engine tests in core.yml run.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: unity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  licence:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        name: Check for the Unity licence secrets
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -n "$UNITY_LICENSE" ] && [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The Unity jobs are skipped until the repository has UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD (README, Automated builds)."
+          fi
+
+  tests:
+    needs: licence
+    if: needs.licence.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write   # the test runner reports each test as a check
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: unity/Library
+          key: library-tests-${{ hashFiles('unity/Packages/packages-lock.json', 'unity/ProjectSettings/**') }}
+          restore-keys: library-tests-
+      - name: Run the EditMode and PlayMode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          testMode: all
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity tests
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: unity-test-results
+          path: artifacts
+
+  android:
+    needs: licence
+    if: needs.licence.outputs.ready == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make room for the Android image
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: unity/Library
+          key: library-android-${{ hashFiles('unity/Packages/packages-lock.json', 'unity/ProjectSettings/**') }}
+          restore-keys: library-android-
+      - name: Build the Android App Bundle
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          targetPlatform: Android
+          androidExportType: androidAppBundle
+          versioning: Custom
+          version: 1.0.0
+          androidVersionCode: ${{ github.run_number }}
+          # Signed with your upload key once these secrets exist (4.6); until then Unity's debug key signs it. A keystore
+          # name turns custom signing on, so it's only given with the keystore.
+          androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'upload.keystore' || '' }}
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-bundle
+          path: build/Android
+
+  ios:
+    needs: licence
+    if: needs.licence.outputs.ready == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: unity/Library
+          key: library-ios-${{ hashFiles('unity/Packages/packages-lock.json', 'unity/ProjectSettings/**') }}
+          restore-keys: library-ios-
+      - name: Export the Xcode project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          targetPlatform: iOS
+          versioning: Custom
+          version: 1.0.0
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ios-xcode-project
+          path: build/iOS

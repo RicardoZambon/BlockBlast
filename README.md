@@ -21,6 +21,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 3e plan](docs/superpowers/plans/2026-10-21-phase-3e-ad-revenue.md): an `ad_impression` event for every paid ad
 - [Phase 3f plan](docs/superpowers/plans/2026-10-21-phase-3f-consent.md): consent results for analytics, and Privacy Settings
 - [Phase 3g plan](docs/superpowers/plans/2026-10-21-phase-3g-remote-config.md): Remote Config's tuning keys, with bundled defaults
+- [Phase 4a plan](docs/superpowers/plans/2026-10-21-phase-4a-automated-builds.md): Unity tests and builds in GitHub Actions, once the licence secrets exist
 
 ## Layout
 
@@ -75,3 +76,21 @@ An emulator can check everything except timings, without a phone:
 ```
 
 A Unity build restarts `adb`. If the emulator then shows as offline, run `adb kill-server` and connect again. The [Task 1.8 plan](docs/superpowers/plans/2026-10-20-task-1.8-unity-prototype.md)'s Results have the first run.
+
+## Automated builds
+
+GitHub Actions runs two workflows:
+- **`core.yml`** (the `test` check that `main` requires) runs the engine tests and the difficulty target on every push.
+- **`unity.yml`** uses GameCI:
+  - Unity's EditMode and PlayMode tests on every pull request and push to `main`.
+  - An Android App Bundle and an exported Xcode project on `main` and on demand (Actions → unity → Run workflow), kept as run artifacts.
+
+`unity.yml` needs a Unity licence, so its jobs are skipped until the repository has these secrets (Settings → Secrets and variables → Actions). Never commit any of them.
+
+| Secret | What it is |
+|---|---|
+| `UNITY_LICENSE` | The whole contents of `Unity_lic.ulf`. In Unity Hub: Preferences → Licenses → Add → Get a free personal license. The file is then at `C:\ProgramData\Unity\Unity_lic.ulf`. If it isn't, [GameCI's activation guide](https://game.ci/docs/github/activation) has other ways |
+| `UNITY_EMAIL` | Your Unity account's email |
+| `UNITY_PASSWORD` | Your Unity account's password |
+
+With your upload key (master plan 4.6), four more sign the bundle for Google Play: `ANDROID_KEYSTORE_BASE64` (the keystore file, base64-encoded), `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` and `ANDROID_KEYALIAS_PASS`. Without them, Unity's debug key signs it, which Play doesn't accept.
