@@ -98,7 +98,7 @@ namespace BlockPuzzle.Game
 
             UiFactory.EnsureEventSystem(transform);
             Home = HomeScreen.Create(transform, PlayOrContinue, PlayDaily, ShowSettings);
-            Settings = SettingsScreen.Create(transform, _settings, SaveSettings, ShowHome, BuyRemoveAds, RestorePurchases);
+            Settings = SettingsScreen.Create(transform, _settings, SaveSettings, ShowHome, BuyRemoveAds, RestorePurchases, ShowPrivacyOptions);
             _store.Initialize(SetOwnership);   // re-checks Remove Ads at every launch (3.6)
             ShowHome();
 
@@ -106,16 +106,24 @@ namespace BlockPuzzle.Game
             _consent.Request(StartAds);
         }
 
-        void StartAds()
+        void StartAds(ConsentResult consent)
         {
             if (_adsStarted) return;
             _adsStarted = true;
             _ads.RevenuePaid += LogRevenue;   // before Initialize, so no impression goes unlogged
             _ads.Initialize();
-            _analytics.Open();
-            _analytics.Log("consent_result", new Dictionary<string, object> { ["gdpr_applies"] = "unknown", ["att_status"] = "unknown" });   // real values come with UMP and ATT (3.2)
+            _analytics.Open(consent);   // consent mode is set before the first event
+            _analytics.Log("consent_result", consent.EventParameters());
+            Settings.ShowPrivacySettings(_consent.PrivacyOptionsRequired);
             Show(Current);   // the banner, if a game screen is already up
         }
+
+        /// <summary>Settings' Privacy Settings: reopens the consent form, then passes the new choices on (3.2).</summary>
+        void ShowPrivacyOptions() => _consent.ShowPrivacyOptions(consent =>
+        {
+            _analytics.SetConsent(consent);
+            _analytics.Log("consent_result", consent.EventParameters());
+        });
 
         /// <summary>Every paid impression as an ad_impression event, unless its revenue is unknown (3.5).</summary>
         void LogRevenue(AdRevenue impression)

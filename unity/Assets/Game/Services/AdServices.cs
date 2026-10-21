@@ -6,7 +6,13 @@ namespace BlockPuzzle.Game
     /// <summary>The consent flow: asked once at launch, and nothing that collects data starts before it finishes (3.2).</summary>
     public interface IConsentFlow
     {
-        void Request(Action finished);
+        void Request(Action<ConsentResult> finished);
+
+        /// <summary>Whether the player's region requires a way back into the form (GDPR); known once Request finishes.</summary>
+        bool PrivacyOptionsRequired { get; }
+
+        /// <summary>Reopens the form from Settings; closed gets the player's choices once it's gone.</summary>
+        void ShowPrivacyOptions(Action<ConsentResult> closed);
     }
 
     /// <summary>An ad SDK, behind what the app needs from it (3.4). App only calls Initialize after consent finishes.</summary>
@@ -29,10 +35,14 @@ namespace BlockPuzzle.Game
         event Action<AdRevenue>? RevenuePaid;
     }
 
-    /// <summary>Until Google's consent form is wired in with MAX (3.2, 3.3): finishes at once.</summary>
+    /// <summary>Until Google's consent form is wired in with MAX (3.2, 3.3): finishes at once, knowing nothing.</summary>
     public sealed class StandInConsent : IConsentFlow
     {
-        public void Request(Action finished) => finished();
+        public void Request(Action<ConsentResult> finished) => finished(ConsentResult.Unknown);
+
+        public bool PrivacyOptionsRequired => false;
+
+        public void ShowPrivacyOptions(Action<ConsentResult> closed) => closed(ConsentResult.Unknown);
     }
 
     /// <summary>

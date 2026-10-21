@@ -7,12 +7,19 @@ namespace BlockPuzzle.Game
     /// <summary>Analytics events, named and shaped as in the master plan's table (3.1).</summary>
     public interface IAnalytics
     {
+        /// <summary>The player's choices, for Firebase's consent mode: always before the first event, and again when they change.</summary>
+        void SetConsent(ConsentResult consent);
+
         void Log(string name, IReadOnlyDictionary<string, object>? parameters = null);
     }
 
     /// <summary>Until Firebase is wired in with your project (3.1): nothing leaves the phone; development builds log the name.</summary>
     public sealed class StandInAnalytics : IAnalytics
     {
+        public void SetConsent(ConsentResult consent)
+        {
+        }
+
         public void Log(string name, IReadOnlyDictionary<string, object>? parameters = null)
         {
             if (Debug.isDebugBuild) Debug.Log("Analytics event: " + name);
@@ -34,7 +41,14 @@ namespace BlockPuzzle.Game
 
         public bool IsOpen { get; private set; }
 
-        public void Open() => IsOpen = true;
+        /// <summary>Passes on the player's choices first, so consent mode is set before any event arrives.</summary>
+        public void Open(ConsentResult consent)
+        {
+            _inner.SetConsent(consent);
+            IsOpen = true;
+        }
+
+        public void SetConsent(ConsentResult consent) => _inner.SetConsent(consent);
 
         public void Log(string name, IReadOnlyDictionary<string, object>? parameters = null)
         {
