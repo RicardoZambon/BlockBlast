@@ -55,7 +55,7 @@ namespace BlockPuzzle.Game.Tests
         App Boot()
         {
             _app = new GameObject("App").AddComponent<App>();
-            _app.Boot(_folder, () => _now, _shared.Add);
+            _app.Boot(_folder, () => _now, _shared.Add, Language.English);   // the texts the tests check, on any machine
             return _app;
         }
 

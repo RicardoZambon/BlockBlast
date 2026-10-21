@@ -62,12 +62,14 @@ namespace BlockPuzzle.Game
 
         /// <summary>
         /// Builds the app with its save and settings files in folder. Start calls it unless something called it first.
-        /// Tests pass their own clock and share action; the app uses the UTC time and DailyShare.Share.
+        /// Tests pass their own clock, share action and language; the app uses the UTC time, DailyShare.Share and the
+        /// phone's language.
         /// </summary>
-        public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null)
+        public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null)
         {
             if (_booted) return;
             _booted = true;
+            Strings.Current = language ?? Strings.FromSystem(Application.systemLanguage);   // before any screen is built
             Application.targetFrameRate = 60;
             if (utcNow != null) _utcNow = utcNow;
             _share = share;
