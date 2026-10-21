@@ -41,6 +41,8 @@ namespace BlockPuzzle.Game
 
         public string PraiseText => _praise != null ? _praise.text : "";
 
+        public Text? PraiseLabel => _praise;
+
         public int LiveParticles { get; private set; }
 
         public int SoundsPlayed { get; private set; }

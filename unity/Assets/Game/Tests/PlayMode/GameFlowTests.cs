@@ -440,6 +440,7 @@ namespace BlockPuzzle.Game.Tests
             Assert.IsTrue(game.Feedback.IsShaking);
             Assert.Greater(game.Feedback.LiveParticles, 0);
             Assert.AreEqual("Great!", game.Feedback.PraiseText);
+            Assert.IsNotNull(game.Feedback.PraiseLabel!.GetComponent<UnityEngine.UI.Outline>(), "white praise over blue cells needs an outline");
             Assert.AreEqual(Sound.Clear, game.Feedback.LastSound);
             Assert.AreEqual(Haptic.Medium, game.Feedback.LastHaptic);
 

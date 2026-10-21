@@ -90,7 +90,7 @@ namespace BlockPuzzle.Game
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 10;
+            text.resizeTextMinSize = Readability.MinTextSize;
             text.resizeTextMaxSize = maxFontSize;
             return text;
         }
@@ -98,7 +98,7 @@ namespace BlockPuzzle.Game
         public static Button Button(Transform parent, string name, string label, Vector2 anchor, Vector2 size, Vector2 position, Action onClick)
         {
             var rect = Rect(parent, name, anchor, size, position);
-            rect.gameObject.AddComponent<Image>().color = Palette.Filled;
+            rect.gameObject.AddComponent<Image>().color = Palette.Button;
             var button = rect.gameObject.AddComponent<Button>();
             button.onClick.AddListener(() => onClick());
             // One line that shrinks to fit: the label area is too short for a second line, so a long label gets smaller.
@@ -108,6 +108,15 @@ namespace BlockPuzzle.Game
             text.rectTransform.offsetMax = new Vector2(-24, -padding);
             text.text = label;
             return button;
+        }
+
+        /// <summary>A dark outline, so white text stays readable over the board's light cells.</summary>
+        public static Text Outlined(Text text)
+        {
+            var outline = text.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            return text;
         }
 
         /// <summary>A stretched, see-through dark layer: the background of an overlay.</summary>
