@@ -32,22 +32,34 @@ namespace BlockPuzzle.Game
             var top = new Vector2(0.5f, 1f);
             var bottom = new Vector2(0.5f, 0f);
 
-            UiFactory.Text(UiFactory.Rect(safe, "Title", top, new Vector2(1000, 160), new Vector2(0, -200)), 100, Color.white).text = Strings.Get("settings.title");
+            // One column from the top, so it fits the shortest canvas (an iPad, about 1660 tall); Back and the version sit
+            // at the bottom.
+            UiFactory.Text(UiFactory.Rect(safe, "Title", top, new Vector2(1000, 140), new Vector2(0, -150)), 100, Color.white).text = Strings.Get("settings.title");
             screen.AddToggle(safe, "sound", 0, settings.Sound, on => settings.Sound = on);
             screen.AddToggle(safe, "music", 1, settings.Music, on => settings.Music = on);
             screen.AddToggle(safe, "haptics", 2, settings.Haptics, on => settings.Haptics = on);
             screen.AddToggle(safe, "reduced_motion", 3, settings.ReducedMotion, on => settings.ReducedMotion = on);
-
-            screen._version = UiFactory.Text(UiFactory.Rect(safe, "Version", bottom, new Vector2(900, 100), new Vector2(0, 320)), 44, new Color(1f, 1f, 1f, 0.6f));
-            screen._version.text = Strings.Format("settings.version", Application.version);
-            UiFactory.Button(safe, "Back", Strings.Get("settings.back"), bottom, new Vector2(600, 170), new Vector2(0, 160), screen.PressBack);
             if (removeAds != null && restore != null)
             {
-                screen._removeAdsButton = UiFactory.Button(safe, "Remove ads", Strings.Get("settings.remove_ads"), bottom, new Vector2(700, 150), new Vector2(0, 700), screen.PressRemoveAds);
-                UiFactory.Button(safe, "Restore", Strings.Get("settings.restore"), bottom, new Vector2(700, 150), new Vector2(0, 520), screen.PressRestore);
+                screen._removeAdsButton = UiFactory.Button(safe, "Remove ads", Strings.Get("settings.remove_ads"), top, ButtonSize, new Vector2(0, ButtonRow(0)), screen.PressRemoveAds);
+                UiFactory.Button(safe, "Restore", Strings.Get("settings.restore"), top, ButtonSize, new Vector2(0, ButtonRow(1)), screen.PressRestore);
             }
+
+            screen._version = UiFactory.Text(UiFactory.Rect(safe, "Version", bottom, new Vector2(900, 60), new Vector2(0, 250)), 44, new Color(1f, 1f, 1f, 0.6f));
+            screen._version.text = Strings.Format("settings.version", Application.version);
+            UiFactory.Button(safe, "Back", Strings.Get("settings.back"), bottom, new Vector2(600, 150), new Vector2(0, 130), screen.PressBack);
             return screen;
         }
+
+        const float RowHeight = 130f;
+        const float RowSpacing = 150f;
+        static readonly Vector2 ButtonSize = new Vector2(700, RowHeight);
+
+        /// <summary>The centre of a toggle row, from the top of the safe area.</summary>
+        static float ToggleRow(int index) => -330 - index * RowSpacing;
+
+        /// <summary>The centre of a button below the four toggles, from the top of the safe area.</summary>
+        static float ButtonRow(int index) => ToggleRow(3) - 170 - index * RowSpacing;
 
         public string VersionText => _version != null ? _version.text : "";
 
@@ -90,7 +102,7 @@ namespace BlockPuzzle.Game
         /// <summary>A row the whole width of which toggles: the label on the left, a box with a check on the right.</summary>
         void AddToggle(Transform parent, string id, int index, bool on, Action<bool> store)
         {
-            var row = UiFactory.Rect(parent, id, new Vector2(0.5f, 1f), new Vector2(900, 150), new Vector2(0, -420 - index * 180));
+            var row = UiFactory.Rect(parent, id, new Vector2(0.5f, 1f), new Vector2(900, RowHeight), new Vector2(0, ToggleRow(index)));
             row.gameObject.AddComponent<Image>().color = Color.clear;   // makes the label tappable too
             var label = UiFactory.Text(UiFactory.Rect(row, "Label", new Vector2(0f, 0.5f), new Vector2(700, 150), new Vector2(350, 0)), 64, Color.white);
             label.alignment = TextAnchor.MiddleLeft;

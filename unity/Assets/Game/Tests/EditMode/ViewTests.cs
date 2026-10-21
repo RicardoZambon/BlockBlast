@@ -103,15 +103,51 @@ namespace BlockPuzzle.Game.Tests
             return go.transform;
         }
 
-        /// <summary>A safe area the size UiFactory's CanvasScaler gives a screen: 1080 × 1920 reference, matched halfway.</summary>
+        /// <summary>The canvas size UiFactory's CanvasScaler gives a screen: 1080 × 1920 reference, matched halfway.</summary>
+        static Vector2 CanvasSize(int width, int height)
+        {
+            float scale = Mathf.Sqrt(width / 1080f * (height / 1920f));
+            return new Vector2(width / scale, height / scale);
+        }
+
         RectTransform SafeArea(int width, int height)
         {
             var go = new GameObject("Safe area", typeof(RectTransform));
             _created.Add(go);
-            float scale = Mathf.Sqrt(width / 1080f * (height / 1920f));
             var rect = (RectTransform)go.transform;
-            rect.sizeDelta = new Vector2(width / scale, height / scale);
+            rect.sizeDelta = CanvasSize(width, height);
             return rect;
+        }
+
+        /// <summary>Settings as a screen of this size shows it, with every row it can have.</summary>
+        RectTransform SettingsSafeArea(int width, int height)
+        {
+            var settings = SettingsScreen.Create(Canvas(), new SettingsData(), () => { }, () => { }, () => { }, () => { });
+            // The safe-area panel follows Screen only in Play mode, so size it for this screen.
+            var safe = (RectTransform)settings.transform.Find("Safe area");
+            safe.anchorMin = safe.anchorMax = new Vector2(0.5f, 0.5f);
+            safe.sizeDelta = CanvasSize(width, height);
+            return safe;
+        }
+
+        [TestCase(1080, 1920)]   // 9:16
+        [TestCase(1080, 2520)]   // 9:21
+        [TestCase(1536, 2048)]   // 3:4, an iPad: the shortest canvas
+        public void Settings_rows_stay_on_screen_and_never_overlap(int width, int height)
+        {
+            var safe = SettingsSafeArea(width, height);
+            var screen = Bounds(safe);
+            var rows = new[] { "Title", "sound", "music", "haptics", "reduced_motion", "Remove ads", "Restore", "Version", "Back" }
+                .Select(name => (name, rect: Bounds(safe.Find(name)))).ToList();
+
+            foreach (var (name, rect) in rows)
+            {
+                Assert.GreaterOrEqual(rect.yMin, screen.yMin - 0.01f, name + " runs off the bottom");
+                Assert.LessOrEqual(rect.yMax, screen.yMax + 0.01f, name + " runs off the top");
+            }
+            for (int i = 0; i < rows.Count; i++)
+                for (int j = i + 1; j < rows.Count; j++)
+                    Assert.IsFalse(rows[i].rect.Overlaps(rows[j].rect), $"{rows[i].name} overlaps {rows[j].name}");
         }
 
         static Rect Bounds(Transform transform)
