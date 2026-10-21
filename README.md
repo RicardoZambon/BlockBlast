@@ -2,6 +2,7 @@
 
 An original 8×8 block puzzle for iOS and Android (working title). This repository holds the plans, the game's rules engine and the Unity app: Home, a first-time tutorial, Classic with pause and game over, the Daily Puzzle, and Settings.
 
+- [Design](docs/design.md): the game on one page: rules, pieces, scoring, modes, ad rules, art direction and KPIs
 - [Master plan](docs/superpowers/plans/2026-10-15-block-puzzle-game.md): every phase from setup to revenue
 - [Phase 1 plan](docs/superpowers/plans/2026-10-20-phase-1-engine-simulator.md): the engine and the simulator, step by step
 - [Task 1.8 plan](docs/superpowers/plans/2026-10-20-task-1.8-unity-prototype.md): the rough Unity prototype, step by step
