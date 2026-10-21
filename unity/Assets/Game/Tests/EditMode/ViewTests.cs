@@ -103,6 +103,75 @@ namespace BlockPuzzle.Game.Tests
             return go.transform;
         }
 
+        /// <summary>A safe area the size UiFactory's CanvasScaler gives a screen: 1080 × 1920 reference, matched halfway.</summary>
+        RectTransform SafeArea(int width, int height)
+        {
+            var go = new GameObject("Safe area", typeof(RectTransform));
+            _created.Add(go);
+            float scale = Mathf.Sqrt(width / 1080f * (height / 1920f));
+            var rect = (RectTransform)go.transform;
+            rect.sizeDelta = new Vector2(width / scale, height / scale);
+            return rect;
+        }
+
+        static Rect Bounds(Transform transform)
+        {
+            var corners = new Vector3[4];
+            ((RectTransform)transform).GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+        }
+
+        [TestCase(1080, 1920)]   // 9:16
+        [TestCase(1080, 2400)]   // 9:20, a Pixel 6a
+        [TestCase(1080, 2520)]   // 9:21
+        [TestCase(1536, 2048)]   // 3:4
+        public void The_tutorial_hint_keeps_clear_of_Skip_and_the_Bench_corner(int width, int height)
+        {
+            var safeArea = SafeArea(width, height);
+            var view = TutorialHintView.Create(safeArea, () => { });
+            // Where the development overlay puts its Bench button.
+            var bench = (RectTransform)new GameObject("Bench", typeof(RectTransform)).transform;
+            bench.SetParent(safeArea, false);
+            bench.anchorMin = bench.anchorMax = new Vector2(1f, 1f);
+            bench.sizeDelta = new Vector2(220, 100);
+            bench.anchoredPosition = new Vector2(-140, -70);
+
+            var hint = Bounds(view.transform.Find("Hint"));
+            Assert.IsFalse(hint.Overlaps(Bounds(view.transform.Find("Skip"))), "the hint runs under Skip");
+            Assert.IsFalse(hint.Overlaps(Bounds(bench)), "the hint runs under Bench");
+            Assert.Greater(hint.width, 400f, "room for a line of text");
+        }
+
+        [Test]
+        public void Every_tutorial_hint_fits_the_narrowest_screen_in_every_language()
+        {
+            var view = TutorialHintView.Create(SafeArea(1080, 2520), () => { });   // 9:21: the narrowest canvas
+            var text = view.transform.Find("Hint").GetComponent<UnityEngine.UI.Text>();
+            var box = text.rectTransform.rect.size;
+            // Fitting at the smallest readable size means best fit never has to cut a line off.
+            var settings = text.GetGenerationSettings(new Vector2(box.x, 0f));
+            settings.resizeTextForBestFit = false;
+            settings.fontSize = Readability.MinTextSize;
+            settings.verticalOverflow = VerticalWrapMode.Overflow;
+            var generator = new TextGenerator();
+            try
+            {
+                foreach (Language language in System.Enum.GetValues(typeof(Language)))
+                {
+                    Strings.Current = language;
+                    foreach (var key in new[] { "tutorial.drag", "tutorial.row", "tutorial.column" })
+                    {
+                        float height = generator.GetPreferredHeight(Strings.Get(key), settings) / settings.scaleFactor;
+                        Assert.LessOrEqual(height, box.y, $"{language} {key}");
+                    }
+                }
+            }
+            finally
+            {
+                Strings.Current = Language.English;
+            }
+        }
+
         [Test]
         public void The_pause_overlay_calls_resume_and_home()
         {

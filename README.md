@@ -56,3 +56,18 @@ The menu **Block Puzzle** (or `-executeMethod BlockPuzzle.Game.EditorTools.Proje
 - `ApplySettings` reapplies the project settings.
 - `BuildScene` regenerates the scene.
 - `BuildAndroidDevelopment` builds `unity/Builds/Android/blockpuzzle-dev.apk`. Add `-buildTarget Android` when running it from a shell.
+
+### Android emulator
+
+An emulator can check everything except timings, without a phone:
+- **What runs:** the Android 17 image (`system-images;android-37.0;google_apis;x86_64`) runs the ARM64 development APK through Google's ARM translation. So timings there don't count, but determinism, allocations, resume and layout do.
+- **What doesn't:**
+  - The Android 14 image's translator stops at an instruction Unity's player uses.
+  - Unity 6.3 no longer builds x86_64 for Android.
+
+```bash
+"$LOCALAPPDATA/Android/Sdk/emulator/emulator.exe" -avd <name> -no-window -no-audio -no-boot-anim -gpu host
+"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r unity/Builds/Android/blockpuzzle-dev.apk
+```
+
+A Unity build restarts `adb`. If the emulator then shows as offline, run `adb kill-server` and connect again. The [Task 1.8 plan](docs/superpowers/plans/2026-10-20-task-1.8-unity-prototype.md)'s Results have the first run.

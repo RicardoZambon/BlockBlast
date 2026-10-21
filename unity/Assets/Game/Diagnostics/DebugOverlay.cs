@@ -1,12 +1,14 @@
 #nullable enable
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace BlockPuzzle.Game
 {
     /// <summary>
-    /// Development builds only: frame rate, the slowest frame of the last 5 s, the determinism check and a dealing
-    /// benchmark, for the on-device checks. Its text changes once a second, which allocates; the game itself doesn't.
+    /// Development builds only: frame rate, the slowest frame of the last 5 s and how many frames in it allocated, the
+    /// determinism check and a dealing benchmark, for the on-device checks. Its text changes once a second, which
+    /// allocates; the game itself doesn't, and the count leaves those frames out.
     /// </summary>
     public sealed class DebugOverlay : MonoBehaviour
     {
@@ -21,17 +23,21 @@ namespace BlockPuzzle.Game
         float _slowestThisWindow;
         float _slowestShown;
         float _windowTimer;
+        ProfilerRecorder _gcAllocated;
+        readonly AllocationTally _allocations = new AllocationTally();
+        bool _refreshedLastFrame;
 
         /// <param name="parent">The safe-area panel, so nothing sits under a notch.</param>
         public static DebugOverlay? CreateIfDevelopment(Transform parent)
         {
             if (!Debug.isDebugBuild) return null;
 
-            var panel = UiFactory.Rect(parent, "Debug overlay", new Vector2(0f, 0f), new Vector2(760, 170), new Vector2(400, 110));
+            var panel = UiFactory.Rect(parent, "Debug overlay", new Vector2(0f, 0f), new Vector2(760, 210), new Vector2(400, 130));
             var overlay = panel.gameObject.AddComponent<DebugOverlay>();
             overlay._text = UiFactory.Text(panel, 30, new Color(1f, 0.85f, 0.3f, 1f));
             overlay._text.alignment = TextAnchor.LowerLeft;
             overlay._determinism = EngineChecks.CheckDeterminism();
+            overlay._gcAllocated = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame");
 
             // Top right, in the banner band, which stays empty until Phase 3: PointerInput reads the pointer directly, so a
             // button over the tray would also pick up a piece.
@@ -44,9 +50,14 @@ namespace BlockPuzzle.Game
 
         void RunBenchmark() => _bench = EngineChecks.BenchmarkDeals(300);
 
+        void OnDestroy() => _gcAllocated.Dispose();
+
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
+            // The recorder holds the last finished frame, so a refresh is left out one frame later.
+            if (_gcAllocated.Valid) _allocations.Add(_gcAllocated.LastValue, _refreshedLastFrame);
+            _refreshedLastFrame = false;
             _framesThisSecond++;
             _secondTimer += dt;
             _windowTimer += dt;
@@ -56,6 +67,7 @@ namespace BlockPuzzle.Game
                 _slowestShown = _slowestThisWindow;
                 _slowestThisWindow = 0f;
                 _windowTimer = 0f;
+                _allocations.EndWindow();
             }
             if (_secondTimer < 1f) return;
 
@@ -65,7 +77,9 @@ namespace BlockPuzzle.Game
             if (_text != null)
             {
                 float slowestMs = Mathf.Max(_slowestShown, _slowestThisWindow) * 1000f;
-                _text.text = $"{_fps:F0} fps, slowest frame {slowestMs:F0} ms\n{_determinism}\n{_bench}";
+                _text.text = $"{_fps:F0} fps, slowest frame {slowestMs:F0} ms\n" +
+                    $"GC: {_allocations.Frames} frames allocated in 5 s, largest {_allocations.LargestBytes} B\n{_determinism}\n{_bench}";
+                _refreshedLastFrame = true;
             }
         }
     }
