@@ -60,15 +60,46 @@ namespace BlockPuzzle.Game
         {
         }
 
-        protected static GameSession? ResumeSnapshot(GameSnapshot snapshot)
+        protected static GameSession? ResumeSnapshot(GameSnapshot snapshot) =>
+            ResumeSnapshot(snapshot, GeneratorSettings.Baseline(), new ScoringSettings());
+
+        /// <summary>Resumes with the settings the game started with; damaged ones fall back to the baseline.</summary>
+        protected static GameSession? ResumeSnapshot(GameSnapshot snapshot, GeneratorSettings? generator, ScoringSettings? scoring)
         {
             try
             {
-                return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings());
+                return GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, Valid(generator) ?? GeneratorSettings.Baseline(),
+                    Valid(scoring) ?? new ScoringSettings());
             }
             catch (InvalidSnapshotException)
             {
                 return null;   // a save we can't resume: start a new game, keeping the counters
+            }
+        }
+
+        static GeneratorSettings? Valid(GeneratorSettings? settings)
+        {
+            try
+            {
+                settings?.Validate();
+                return settings;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        static ScoringSettings? Valid(ScoringSettings? settings)
+        {
+            try
+            {
+                settings?.Validate();
+                return settings;
+            }
+            catch (ArgumentException)
+            {
+                return null;
             }
         }
     }
@@ -90,14 +121,20 @@ namespace BlockPuzzle.Game
         }
     }
 
-    /// <summary>Classic: one game after another, a best score, and the counters the next game starts with.</summary>
+    /// <summary>
+    /// Classic: one game after another, a best score, and the counters the next game starts with. New games follow
+    /// Remote Config's tuning; a game in progress keeps the settings it started with, which the save holds.
+    /// </summary>
     public sealed class ClassicMode : GameMode
     {
         readonly SaveData _save;
+        readonly Func<RemoteTuning> _tuning;
 
-        public ClassicMode(SaveData save)
+        /// <param name="tuning">The tuning as it stands when a new game starts; the bundled defaults if null.</param>
+        public ClassicMode(SaveData save, Func<RemoteTuning>? tuning = null)
         {
             _save = save;
+            _tuning = tuning ?? (() => RemoteTuning.Defaults);
             // A damaged save can hold impossible counters; the GameSession constructor would refuse them on every launch.
             save.NextGameIndex = Math.Max(0, save.NextGameIndex);
             save.NextRecentQuickLosses = Math.Max(0, save.NextRecentQuickLosses);
@@ -108,7 +145,7 @@ namespace BlockPuzzle.Game
         public static bool CanContinue(SaveData save)
         {
             if (!save.HasGame) return false;
-            var game = ResumeSnapshot(save.Game);
+            var game = ResumeSnapshot(save.Game, save.GameGenerator, save.GameScoring);
             return game != null && !game.IsGameOver;
         }
 
@@ -120,13 +157,16 @@ namespace BlockPuzzle.Game
         public override GameSession? Resume()
         {
             _bestBeforeGame = _save.BestScore;
-            return _save.HasGame ? ResumeSnapshot(_save.Game) : null;
+            return _save.HasGame ? ResumeSnapshot(_save.Game, _save.GameGenerator, _save.GameScoring) : null;
         }
 
         public override GameSession StartNew()
         {
             _bestBeforeGame = _save.BestScore;
-            return new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
+            var tuning = _tuning();
+            _save.GameGenerator = tuning.Generator.Clone();
+            _save.GameScoring = tuning.Scoring.Clone();
+            return new GameSession(PieceCatalog.Standard, tuning.Generator, tuning.Scoring, SeedSource.NewSeed(),
                 _save.NextGameIndex, _save.NextRecentQuickLosses);
         }
 

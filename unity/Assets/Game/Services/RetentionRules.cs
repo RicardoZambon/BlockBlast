@@ -7,7 +7,7 @@ namespace BlockPuzzle.Game
     /// <summary>When to ask for a rating, and when to ask about and send the Daily reminder (master plan 3.7). Pure.</summary>
     public static class RetentionRules
     {
-        /// <summary>review_prompt_min_games, until Remote Config can set it (3.1).</summary>
+        /// <summary>review_prompt_min_games's default; Remote Config can change it (RemoteTuning).</summary>
         public const int ReviewPromptMinGames = 5;
 
         /// <summary>The app's own gap between rating requests; the stores add stricter limits of their own.</summary>
@@ -17,8 +17,9 @@ namespace BlockPuzzle.Game
         public const int ReminderHour = 18;
 
         /// <param name="lastAskedDay">The day the app last asked, as a DailyPuzzle.DayNumber; −1 if never.</param>
-        public static bool ShouldAskForRating(bool newBest, int gamesFinished, int lastAskedDay, int today) =>
-            newBest && gamesFinished >= ReviewPromptMinGames &&
+        /// <param name="minGames">review_prompt_min_games, as Remote Config has it.</param>
+        public static bool ShouldAskForRating(bool newBest, int gamesFinished, int lastAskedDay, int today, int minGames = ReviewPromptMinGames) =>
+            newBest && gamesFinished >= minGames &&
             (lastAskedDay < 0 || today - lastAskedDay >= ReviewPromptGapDays);
 
         /// <summary>Only after the player's first finished Daily, and only once.</summary>

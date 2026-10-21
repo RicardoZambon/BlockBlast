@@ -18,6 +18,13 @@ namespace BlockPuzzle.Game.Tests
         }
 
         [Test]
+        public void Remote_Config_can_move_the_first_rating_request()
+        {
+            Assert.IsFalse(RetentionRules.ShouldAskForRating(true, gamesFinished: 7, lastAskedDay: -1, today: Day, minGames: 8));
+            Assert.IsTrue(RetentionRules.ShouldAskForRating(true, gamesFinished: 8, lastAskedDay: -1, today: Day, minGames: 8));
+        }
+
+        [Test]
         public void A_rating_is_asked_for_at_most_every_60_days()
         {
             Assert.IsFalse(RetentionRules.ShouldAskForRating(true, 20, lastAskedDay: Day - 59, today: Day));

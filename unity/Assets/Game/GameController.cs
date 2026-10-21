@@ -50,7 +50,7 @@ namespace BlockPuzzle.Game
             {
                 ["mode"] = _mode.AnalyticsName,
                 ["game_index"] = Game.GameIndex,
-                ["gen_profile"] = "baseline",
+                ["gen_profile"] = Game.GeneratorProfile,
             });
         }
 
@@ -74,6 +74,9 @@ namespace BlockPuzzle.Game
 
         /// <summary>The ad service for the rewarded revive; set by App. Without one, no revive is offered.</summary>
         public IAdService? Ads { get; set; }
+
+        /// <summary>Remote Config's ads_revive_enabled, asked at each game over; offered when unset.</summary>
+        public Func<bool>? ReviveAllowed { get; set; }
 
         /// <summary>
         /// Runs between games, when the player leaves game over through Play again or Home, with what to do next. App
@@ -351,7 +354,7 @@ namespace BlockPuzzle.Game
         void FinishGame()
         {
             var game = Game;
-            bool offerRevive = _mode.CanRevive && !game.Revived && Ads != null && Ads.IsRewardedReady;
+            bool offerRevive = _mode.CanRevive && !game.Revived && (ReviveAllowed?.Invoke() ?? true) && Ads != null && Ads.IsRewardedReady;
             if (offerRevive)
             {
                 // A revive would continue this game, so it's saved as it stands and recorded as finished only when the

@@ -81,6 +81,9 @@ namespace BlockPuzzle.Core
         public int LinesCleared { get; private set; }
         public int GameIndex { get; }
         public int RecentQuickLosses { get; }
+
+        /// <summary>The name of the generator settings this game deals with, such as "baseline", for analytics.</summary>
+        public string GeneratorProfile => _generatorSettings.Name;
         public bool IsMercyGame =>
             _generatorSettings.MercyAfterQuickLosses > 0 && RecentQuickLosses >= _generatorSettings.MercyAfterQuickLosses;
         /// <summary>

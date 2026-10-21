@@ -33,7 +33,8 @@ namespace BlockPuzzle.Game
         Action<string>? _share;
         IConsentFlow _consent = new StandInConsent();
         IAdService _ads = new StandInAds();
-        readonly AdPolicySettings _adPolicy = new AdPolicySettings();
+        IRemoteConfig _remoteConfig = new StandInRemoteConfig();
+        RemoteTuning _tuning = RemoteTuning.Defaults;   // the bundled defaults until a fetch says otherwise (3.1)
         DateTime? _lastFullScreenAd;
         bool _adsStarted;
         ConsentGatedAnalytics _analytics = new ConsentGatedAnalytics(new StandInAnalytics());
@@ -77,7 +78,7 @@ namespace BlockPuzzle.Game
         /// </summary>
         public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null,
             IConsentFlow? consent = null, IAdService? ads = null, IReviewPrompt? review = null, IReminders? reminders = null,
-            IAnalytics? analytics = null, IStore? store = null)
+            IAnalytics? analytics = null, IStore? store = null, IRemoteConfig? remoteConfig = null)
         {
             if (_booted) return;
             _booted = true;
@@ -91,6 +92,7 @@ namespace BlockPuzzle.Game
             if (reminders != null) _reminders = reminders;
             if (analytics != null) _analytics = new ConsentGatedAnalytics(analytics);
             if (store != null) _store = store;
+            if (remoteConfig != null) _remoteConfig = remoteConfig;
             _saveStore = new SaveStore(Path.Combine(folder, SaveStore.FileName));
             if (_saveStore.TryRead(out var saved)) _save = saved;
             _settingsStore = new SettingsStore(Path.Combine(folder, SettingsStore.FileName));
@@ -116,6 +118,14 @@ namespace BlockPuzzle.Game
             _analytics.Log("consent_result", consent.EventParameters());
             Settings.ShowPrivacySettings(_consent.PrivacyOptionsRequired);
             Show(Current);   // the banner, if a game screen is already up
+            _remoteConfig.Fetch(ApplyRemoteConfig);
+        }
+
+        /// <summary>The fetched tuning: new Classic games, the ads, the revive and the rating prompt follow it from now on.</summary>
+        void ApplyRemoteConfig()
+        {
+            _tuning = RemoteTuning.From(_remoteConfig.Value);
+            Show(Current);   // the banner may have been switched off
         }
 
         /// <summary>Settings' Privacy Settings: reopens the consent form, then passes the new choices on (3.2).</summary>
@@ -140,7 +150,7 @@ namespace BlockPuzzle.Game
         public bool InterstitialAllowedNow()
         {
             double? since = _lastFullScreenAd == null ? (double?)null : (_utcNow() - _lastFullScreenAd.Value).TotalSeconds;
-            return AdPolicy.CanShowInterstitial(_adPolicy, _save.OwnsRemoveAds, _save.NextGameIndex, since, betweenGames: true);
+            return AdPolicy.CanShowInterstitial(_tuning.AdPolicy, _save.OwnsRemoveAds, _save.NextGameIndex, since, betweenGames: true);
         }
 
         /// <summary>Between games: an interstitial when allowed and loaded, then the player's next step, shown or not.</summary>
@@ -183,7 +193,7 @@ namespace BlockPuzzle.Game
                 Show(AppScreen.Tutorial);
                 return;
             }
-            if (Game == null) Game = CreateGame("Game", new ClassicMode(_save));
+            if (Game == null) Game = CreateGame("Game", new ClassicMode(_save, () => _tuning));
             if (Game.GameOver.IsShown) Game.PlayAgain();   // after a game over, or a saved game that was already over
             Show(AppScreen.Game);
         }
@@ -232,6 +242,7 @@ namespace BlockPuzzle.Game
             // Wired before Boot, which may already start a game (game_start) or end one (a save that was already over).
             game.HomeRequested += ShowHome;
             game.Ads = _ads;
+            game.ReviveAllowed = () => _tuning.ReviveEnabled;
             game.Analytics = _analytics;
             game.BetweenGames = ShowInterstitialThen;
             game.FullScreenAdShown += () => _lastFullScreenAd = _utcNow();
@@ -253,7 +264,7 @@ namespace BlockPuzzle.Game
         void Show(AppScreen screen)
         {
             Current = screen;
-            if (_adsStarted && !_save.OwnsRemoveAds && (screen == AppScreen.Game || screen == AppScreen.Daily)) _ads.ShowBanner();
+            if (_adsStarted && !_save.OwnsRemoveAds && _tuning.BannerEnabled && (screen == AppScreen.Game || screen == AppScreen.Daily)) _ads.ShowBanner();
             else _ads.HideBanner();
             Home.gameObject.SetActive(screen == AppScreen.Home);
             Settings.gameObject.SetActive(screen == AppScreen.Settings);
@@ -296,7 +307,7 @@ namespace BlockPuzzle.Game
         void OnClassicRecorded(GameController game)
         {
             int today = Today;
-            if (!RetentionRules.ShouldAskForRating(game.LastGameSetNewBest, _save.NextGameIndex, _save.RatingAskedDay, today)) return;
+            if (!RetentionRules.ShouldAskForRating(game.LastGameSetNewBest, _save.NextGameIndex, _save.RatingAskedDay, today, _tuning.ReviewPromptMinGames)) return;
             _save.RatingAskedDay = today;   // written with the finished game, right after this
             _review.Request();
         }
