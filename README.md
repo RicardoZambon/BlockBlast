@@ -15,6 +15,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 2h plan](docs/superpowers/plans/2026-10-21-phase-2h-languages.md): Brazilian Portuguese, Latin-American Spanish and Indonesian
 - [Phase 3a plan](docs/superpowers/plans/2026-10-21-phase-3a-ad-placements.md): ad placements behind a consent gate, with stand-in services
 - [Phase 3b plan](docs/superpowers/plans/2026-10-21-phase-3b-retention.md): the rating prompt and the Daily reminder
+- [Phase 3c plan](docs/superpowers/plans/2026-10-21-phase-3c-analytics.md): analytics events behind consent
 
 ## Layout
 

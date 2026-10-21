@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using BlockPuzzle.Core;
 using UnityEngine;
 
@@ -36,6 +37,40 @@ namespace BlockPuzzle.Game
 
         /// <summary>Whether the game just recorded beat the best score from before it started.</summary>
         public bool LastGameSetNewBest => _booted && _mode.FinishedWithNewBest;
+
+        /// <summary>Where game events go (3.1); App sets it before Boot, so the first game_start is caught.</summary>
+        public IAnalytics? Analytics { get; set; }
+
+        float _startedAt;   // for game_end's duration_s
+
+        void LogGameStart()
+        {
+            if (Analytics == null || _mode.AnalyticsName.Length == 0) return;
+            Analytics.Log("game_start", new Dictionary<string, object>
+            {
+                ["mode"] = _mode.AnalyticsName,
+                ["game_index"] = Game.GameIndex,
+                ["gen_profile"] = "baseline",
+            });
+        }
+
+        void LogGameEnd()
+        {
+            if (Analytics == null || _mode.AnalyticsName.Length == 0) return;
+            var game = Game;
+            Analytics.Log("game_end", new Dictionary<string, object>
+            {
+                ["mode"] = _mode.AnalyticsName,
+                ["score"] = game.Score,
+                ["placements"] = game.Placements,
+                ["lines"] = game.LinesCleared,
+                ["max_streak"] = game.MaxStreak,
+                ["duration_s"] = (int)(Time.realtimeSinceStartup - _startedAt),
+                ["revived"] = game.Revived,
+            });
+        }
+
+        void LogWithGameIndex(string name) => Analytics?.Log(name, new Dictionary<string, object> { ["game_index"] = Game.GameIndex });
 
         /// <summary>The ad service for the rewarded revive; set by App. Without one, no revive is offered.</summary>
         public IAdService? Ads { get; set; }
@@ -163,6 +198,7 @@ namespace BlockPuzzle.Game
             if (mode.CurrentGuide != null) Hand = HandMarker.Create(transform, Layout.CellSize, () => Drag.IsDragging || Drag.IsReturning || IsPaused);
 
             _game = mode.Resume();
+            _startedAt = Time.realtimeSinceStartup;   // a resumed game's duration counts from now
             if (_game == null)
             {
                 StartNextGame();
@@ -226,6 +262,7 @@ namespace BlockPuzzle.Game
             _pendingFinish = false;
             GameOver.ShowRevive(false);
             _mode.Finished(Game);
+            LogGameEnd();
             GameRecorded?.Invoke();
             Save();
         }
@@ -239,6 +276,7 @@ namespace BlockPuzzle.Game
             Ads.ShowRewarded(rewarded =>
             {
                 if (!rewarded || !Game.TryRevive()) return;   // TryRevive deals a fresh tray that fits
+                LogWithGameIndex("revive_accept");
                 _pendingFinish = false;
                 GameOver.Hide();
                 RenderAll();
@@ -279,6 +317,8 @@ namespace BlockPuzzle.Game
         void StartNextGame()
         {
             _game = _mode.StartNew();
+            _startedAt = Time.realtimeSinceStartup;
+            LogGameStart();
             RenderAll();
             SaveGameInProgress();
         }
@@ -323,10 +363,12 @@ namespace BlockPuzzle.Game
             else
             {
                 _mode.Finished(game);
+                LogGameEnd();
                 GameRecorded?.Invoke();
                 GameOver.Show(game.Score, _mode.Best, _mode.Streak);
             }
             GameOver.ShowRevive(offerRevive);
+            if (offerRevive) LogWithGameIndex("revive_offer");
             Save();
         }
 
@@ -337,7 +379,11 @@ namespace BlockPuzzle.Game
         }
 
         /// <summary>The Daily's Share button: posts the finished game's result.</summary>
-        void ShareResult() => (_share ?? DailyShare.Share)(_mode.ShareText(Game));
+        void ShareResult()
+        {
+            Analytics?.Log("share", new Dictionary<string, object> { ["content_type"] = "daily_result" });
+            (_share ?? DailyShare.Share)(_mode.ShareText(Game));
+        }
 
         /// <summary>A failed save (full storage, a file another app holds) must not stop the game; the next move tries again.</summary>
         void Save()
