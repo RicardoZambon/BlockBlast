@@ -28,6 +28,20 @@ namespace BlockPuzzle.Game
         /// <summary>Raised when a guided mode, the tutorial, ends after its last step or on Skip.</summary>
         public event Action? Completed;
 
+        /// <summary>Raised just before a rewarded ad shows, so App can space interstitials after it.</summary>
+        public event Action? FullScreenAdShown;
+
+        /// <summary>The ad service for the rewarded revive; set by App. Without one, no revive is offered.</summary>
+        public IAdService? Ads { get; set; }
+
+        /// <summary>
+        /// Runs between games, when the player leaves game over through Play again or Home, with what to do next. App
+        /// shows an interstitial here when AdPolicy allows; without it, the next step simply runs.
+        /// </summary>
+        public Action<Action>? BetweenGames { get; set; }
+
+        bool _pendingFinish;   // game over offers a revive, so the game isn't recorded as finished until the player leaves
+
         /// <summary>The move the player is guided to make next, or null for free play.</summary>
         public Guide? CurrentGuide => _booted ? _mode.CurrentGuide : null;
 
@@ -129,8 +143,8 @@ namespace BlockPuzzle.Game
             var praise = UiFactory.Outlined(UiFactory.FittedText(UiFactory.Rect(canvas, "Praise", new Vector2(0.5f, boardMiddle), new Vector2(900, 200), Vector2.zero),
                 110, Color.white));
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
-            GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? PlayAgain : (Action?)null,
-                mode.CanShare ? ShareResult : (Action?)null, RequestHome);
+            GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? () => LeaveGameOver(PlayAgain) : (Action?)null,
+                mode.CanShare ? ShareResult : (Action?)null, () => LeaveGameOver(RequestHome), mode.CanRevive ? ReviveWithAd : (Action?)null);
             GameOver.Hide();
             UiFactory.EnsureEventSystem(transform);   // App already has one; a GameController on its own needs its own
 
@@ -187,8 +201,42 @@ namespace BlockPuzzle.Game
         /// <summary>Starts the next game; the Play again button calls this.</summary>
         public void PlayAgain()
         {
+            RecordPendingFinish();
             GameOver.Hide();
             StartNextGame();
+        }
+
+        /// <summary>Play again or Home on the game-over panel: records the game, then lets App put an interstitial in between.</summary>
+        void LeaveGameOver(Action next)
+        {
+            RecordPendingFinish();
+            if (BetweenGames != null) BetweenGames(next);
+            else next();
+        }
+
+        void RecordPendingFinish()
+        {
+            if (!_pendingFinish) return;
+            _pendingFinish = false;
+            GameOver.ShowRevive(false);
+            _mode.Finished(Game);
+            Save();
+        }
+
+        /// <summary>The revive button: once per game, whatever the ad does. A skipped or failed ad leaves game over as it was.</summary>
+        void ReviveWithAd()
+        {
+            if (Ads == null || !_pendingFinish) return;
+            GameOver.ShowRevive(false);
+            FullScreenAdShown?.Invoke();
+            Ads.ShowRewarded(rewarded =>
+            {
+                if (!rewarded || !Game.TryRevive()) return;   // TryRevive deals a fresh tray that fits
+                _pendingFinish = false;
+                GameOver.Hide();
+                RenderAll();
+                SaveGameInProgress();
+            });
         }
 
         /// <summary>The pause button and the back button: pauses or resumes. Ignored on game over.</summary>
@@ -256,8 +304,21 @@ namespace BlockPuzzle.Game
         void FinishGame()
         {
             var game = Game;
-            _mode.Finished(game);
-            GameOver.Show(game.Score, _mode.Best, _mode.Streak);
+            bool offerRevive = _mode.CanRevive && !game.Revived && Ads != null && Ads.IsRewardedReady;
+            if (offerRevive)
+            {
+                // A revive would continue this game, so it's saved as it stands and recorded as finished only when the
+                // player leaves game over. Killed here, the app comes back to this game over.
+                _pendingFinish = true;
+                _mode.InProgress(game);
+                GameOver.Show(game.Score, Math.Max(game.Score, _mode.Best), _mode.Streak);
+            }
+            else
+            {
+                _mode.Finished(game);
+                GameOver.Show(game.Score, _mode.Best, _mode.Streak);
+            }
+            GameOver.ShowRevive(offerRevive);
             Save();
         }
 

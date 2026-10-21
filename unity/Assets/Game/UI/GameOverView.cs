@@ -15,23 +15,27 @@ namespace BlockPuzzle.Game
         Action? _playAgain;
         Action? _share;
         Action? _home;
+        Action? _revive;
 
         /// <summary>Classic's panel: Play again and Home.</summary>
         public static GameOverView Create(Transform canvas, Action playAgain, Action home) => Create(canvas, Strings.Get("game_over.title"), playAgain, null, home);
 
-        public static GameOverView Create(Transform canvas, string title, Action? playAgain, Action? share, Action home)
+        /// <param name="revive">The rewarded revive (Classic). Its button stays hidden until ShowRevive(true).</param>
+        public static GameOverView Create(Transform canvas, string title, Action? playAgain, Action? share, Action home, Action? revive = null)
         {
             var root = UiFactory.Dim(canvas, "Game over");   // drags are already refused here: the game is over
             var view = root.gameObject.AddComponent<GameOverView>();
             view._playAgain = playAgain;
             view._share = share;
             view._home = home;
+            view._revive = revive;
             var centre = new Vector2(0.5f, 0.5f);
             UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 460)), 110, Color.white).text = title;
             view._scores = UiFactory.Text(UiFactory.Rect(root, "Scores", centre, new Vector2(900, 220), new Vector2(0, 240)), 64, Color.white);
 
             // Reserved now, so adding the rewarded revive in Phase 3 doesn't move the buttons.
             view.ReviveSlot = UiFactory.Rect(root, "Revive slot", centre, new Vector2(700, 180), new Vector2(0, 30));
+            if (revive != null) UiFactory.Button(view.ReviveSlot, "Revive", Strings.Get("game_over.revive"), centre, new Vector2(600, 170), Vector2.zero, view.PressRevive);
             view.ReviveSlot.gameObject.SetActive(false);
 
             float y = -180;
@@ -58,6 +62,14 @@ namespace BlockPuzzle.Game
         public bool OffersPlayAgain => _playAgain != null;
 
         public bool OffersShare => _share != null;
+
+        public bool ReviveOffered => ReviveSlot.gameObject.activeSelf;
+
+        /// <summary>Shows or hides the revive offer; there is none to show without a revive action.</summary>
+        public void ShowRevive(bool offered) => ReviveSlot.gameObject.SetActive(offered && _revive != null);
+
+        /// <summary>What the Revive button does; tests call it directly.</summary>
+        public void PressRevive() => _revive?.Invoke();
 
         public string ScoresText => _scores != null ? _scores.text : "";
 

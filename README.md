@@ -13,6 +13,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 2f plan](docs/superpowers/plans/2026-10-20-phase-2f-accessibility.md): contrast, brightness and text-size checks
 - [Phase 2g plan](docs/superpowers/plans/2026-10-21-phase-2g-strings.md): every UI string in one table, the first step of translations
 - [Phase 2h plan](docs/superpowers/plans/2026-10-21-phase-2h-languages.md): Brazilian Portuguese, Latin-American Spanish and Indonesian
+- [Phase 3a plan](docs/superpowers/plans/2026-10-21-phase-3a-ad-placements.md): ad placements behind a consent gate, with stand-in services
 
 ## Layout
 

@@ -34,6 +34,9 @@ namespace BlockPuzzle.Game
 
         public virtual bool CanShare => false;
 
+        /// <summary>Whether game over may offer a rewarded revive: Classic only, as the Daily is one fair attempt.</summary>
+        public virtual bool CanRevive => false;
+
         /// <summary>What Share posts for a finished game.</summary>
         public virtual string ShareText(GameSession finished) => "";
 
@@ -125,6 +128,8 @@ namespace BlockPuzzle.Game
         }
 
         public override int Best => _save.BestScore;
+
+        public override bool CanRevive => true;
     }
 
     public enum DailyState

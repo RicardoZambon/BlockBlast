@@ -30,6 +30,11 @@ namespace BlockPuzzle.Game
         SettingsData _settings = new SettingsData();
         Func<DateTime> _utcNow = () => DateTime.UtcNow;
         Action<string>? _share;
+        IConsentFlow _consent = new StandInConsent();
+        IAdService _ads = new StandInAds();
+        readonly AdPolicySettings _adPolicy = new AdPolicySettings();
+        DateTime? _lastFullScreenAd;
+        bool _adsStarted;
         int _homeDay;
         bool _booted;
 
@@ -65,7 +70,8 @@ namespace BlockPuzzle.Game
         /// Tests pass their own clock, share action and language; the app uses the UTC time, DailyShare.Share and the
         /// phone's language.
         /// </summary>
-        public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null)
+        public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null,
+            IConsentFlow? consent = null, IAdService? ads = null)
         {
             if (_booted) return;
             _booted = true;
@@ -73,6 +79,8 @@ namespace BlockPuzzle.Game
             Application.targetFrameRate = 60;
             if (utcNow != null) _utcNow = utcNow;
             _share = share;
+            if (consent != null) _consent = consent;
+            if (ads != null) _ads = ads;
             _saveStore = new SaveStore(Path.Combine(folder, SaveStore.FileName));
             if (_saveStore.TryRead(out var saved)) _save = saved;
             _settingsStore = new SettingsStore(Path.Combine(folder, SettingsStore.FileName));
@@ -82,6 +90,36 @@ namespace BlockPuzzle.Game
             Home = HomeScreen.Create(transform, PlayOrContinue, PlayDaily, ShowSettings);
             Settings = SettingsScreen.Create(transform, _settings, SaveSettings, ShowHome);
             ShowHome();
+
+            // Consent first: no ad SDK starts, and so none collects anything, before the flow finishes (3.2).
+            _consent.Request(StartAds);
+        }
+
+        void StartAds()
+        {
+            if (_adsStarted) return;
+            _adsStarted = true;
+            _ads.Initialize();
+            Show(Current);   // the banner, if a game screen is already up
+        }
+
+        /// <summary>Whether AdPolicy lets an interstitial show between games now: the grace games, then the cooldown.</summary>
+        public bool InterstitialAllowedNow()
+        {
+            double? since = _lastFullScreenAd == null ? (double?)null : (_utcNow() - _lastFullScreenAd.Value).TotalSeconds;
+            return AdPolicy.CanShowInterstitial(_adPolicy, ownsRemoveAds: false, _save.NextGameIndex, since, betweenGames: true);
+        }
+
+        /// <summary>Between games: an interstitial when allowed and loaded, then the player's next step, shown or not.</summary>
+        void ShowInterstitialThen(Action next)
+        {
+            if (!_adsStarted || !InterstitialAllowedNow() || !_ads.IsInterstitialReady)
+            {
+                next();
+                return;
+            }
+            _lastFullScreenAd = _utcNow();
+            _ads.ShowInterstitial(next);
         }
 
         public void ShowHome()
@@ -158,6 +196,9 @@ namespace BlockPuzzle.Game
             var game = go.AddComponent<GameController>();
             game.Boot(_saveStore!, _save, mode, _share, _settings);
             game.HomeRequested += ShowHome;
+            game.Ads = _ads;
+            game.BetweenGames = ShowInterstitialThen;
+            game.FullScreenAdShown += () => _lastFullScreenAd = _utcNow();
             return game;
         }
 
@@ -173,6 +214,8 @@ namespace BlockPuzzle.Game
         void Show(AppScreen screen)
         {
             Current = screen;
+            if (_adsStarted && (screen == AppScreen.Game || screen == AppScreen.Daily)) _ads.ShowBanner();
+            else _ads.HideBanner();
             Home.gameObject.SetActive(screen == AppScreen.Home);
             Settings.gameObject.SetActive(screen == AppScreen.Settings);
             if (Game != null) Game.gameObject.SetActive(screen == AppScreen.Game);
