@@ -56,6 +56,7 @@ namespace BlockPuzzle.Game.Tests
 
             public void ShowBanner() => BannerShown = true;
             public void HideBanner() => BannerShown = false;
+            public event Action<AdRevenue>? RevenuePaid { add { } remove { } }
         }
 
         string _folder = "";

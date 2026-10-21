@@ -47,6 +47,7 @@ namespace BlockPuzzle.Game.Tests
             public void ShowRewarded(Action<bool> finished) => finished(false);
             public void ShowBanner() { }
             public void HideBanner() { }
+            public event Action<AdRevenue>? RevenuePaid { add { } remove { } }
         }
 
         const int Day = 20747;   // 2026-10-21
