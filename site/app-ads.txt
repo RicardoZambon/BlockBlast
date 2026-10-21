@@ -1,0 +1,6 @@
+# app-ads.txt for [Game name] (master plan 0.5). AdMob and AppLovin check it before serving ads at full volume.
+# Replace these comments with the lines your ad accounts give you, one seller per line:
+# - AdMob: Apps, then View all apps, then app-ads.txt. Its line looks like
+#   google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+# - AppLovin MAX: the app-ads.txt lines for every network you mediate, from your MAX account.
+# It must sit at the root of the website listed in both store listings.

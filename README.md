@@ -22,6 +22,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 3f plan](docs/superpowers/plans/2026-10-21-phase-3f-consent.md): consent results for analytics, and Privacy Settings
 - [Phase 3g plan](docs/superpowers/plans/2026-10-21-phase-3g-remote-config.md): Remote Config's tuning keys, with bundled defaults
 - [Phase 4a plan](docs/superpowers/plans/2026-10-21-phase-4a-automated-builds.md): Unity tests and builds in GitHub Actions, once the licence secrets exist
+- [Phase 0a plan](docs/superpowers/plans/2026-10-21-phase-0a-website.md): the website, with the privacy policy, terms and `app-ads.txt`
 - [Phase 4b plan](docs/superpowers/plans/2026-10-21-phase-4b-store-listings.md): store listing text in four languages, as fastlane metadata
 
 ## Layout
@@ -95,3 +96,14 @@ GitHub Actions runs two workflows:
 | `UNITY_PASSWORD` | Your Unity account's password |
 
 With your upload key (master plan 4.6), four more sign the bundle for Google Play: `ANDROID_KEYSTORE_BASE64` (the keystore file, base64-encoded), `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` and `ANDROID_KEYALIAS_PASS`. Without them, Unity's debug key signs it, which Play doesn't accept.
+
+## Website
+
+`site/` is the game's one-page website (master plan 0.5): the home page with support, the privacy policy, the terms of use, and `app-ads.txt`. It's plain HTML and CSS with no scripts or outside resources, so the site itself collects nothing; the `site` workflow checks that, and that every local link works.
+
+To publish it:
+1. **Fill the placeholders.** Replace every `[bracketed]` value (game name, seller, support email, store links, dates). Then put your AdMob and AppLovin lines in `app-ads.txt`, and have a lawyer read the two drafts once.
+2. **Turn Pages on:** Settings → Pages → Source: GitHub Actions, then add the repository variable `PAGES_ENABLED` = `true` (Settings → Secrets and variables → Actions → Variables).
+3. **Add your domain** in Settings → Pages. `app-ads.txt` must sit at the root of the domain listed in both stores.
+
+The workflow refuses to publish while any placeholder is left.

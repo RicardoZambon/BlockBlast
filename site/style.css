@@ -1,0 +1,52 @@
+/* The game's one-page site (master plan 0.5): no scripts, fonts, cookies or trackers, so the site itself collects nothing. */
+:root {
+  --bg: #f6f7fb;
+  --text: #1c2030;
+  --muted: #555b70;
+  --accent: #1f5fc4;
+  --card: #ffffff;
+  --border: #dde1ec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e2232;
+    --text: #eef0f6;
+    --muted: #b5bbcc;
+    --accent: #7fb0ff;
+    --card: #262b3e;
+    --border: #3a4058;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+h2 { font-size: 1.25rem; margin: 32px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 1.15rem; color: var(--muted); margin-top: 0; }
+.updated { color: var(--muted); font-size: 0.95rem; }
+
+a { color: var(--accent); }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 24px 0;
+}
+
+nav ul, .links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+
+footer { color: var(--muted); font-size: 0.95rem; border-top: 1px solid var(--border); margin-top: 40px; padding-top: 16px; }
