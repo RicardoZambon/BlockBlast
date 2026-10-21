@@ -52,7 +52,7 @@ namespace BlockPuzzle.Game
         {
             if (_streak == null || streak == _shownStreak) return;
             _shownStreak = streak;
-            _streak.text = streak >= 2 ? "Streak " + streak : "";
+            _streak.text = streak >= 2 ? Strings.Format("hud.streak", streak) : "";
         }
 
         /// <summary>Changes the texts only when a value changes, so a frame without a new score allocates nothing.</summary>
@@ -66,7 +66,7 @@ namespace BlockPuzzle.Game
             if (_best != null && best != _shownBest)
             {
                 _shownBest = best;
-                _best.text = "Best " + best;
+                _best.text = Strings.Format("hud.best", best);
             }
         }
 

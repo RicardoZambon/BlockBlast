@@ -28,37 +28,37 @@ namespace BlockPuzzle.Game
             var top = new Vector2(0.5f, 1f);
             var bottom = new Vector2(0.5f, 0f);
 
-            UiFactory.Text(UiFactory.Rect(safe, "Title", top, new Vector2(1000, 160), new Vector2(0, -200)), 100, Color.white).text = "Settings";
-            screen.AddToggle(safe, "Sound", 0, settings.Sound, on => settings.Sound = on);
-            screen.AddToggle(safe, "Music", 1, settings.Music, on => settings.Music = on);
-            screen.AddToggle(safe, "Haptics", 2, settings.Haptics, on => settings.Haptics = on);
-            screen.AddToggle(safe, "Reduced motion", 3, settings.ReducedMotion, on => settings.ReducedMotion = on);
+            UiFactory.Text(UiFactory.Rect(safe, "Title", top, new Vector2(1000, 160), new Vector2(0, -200)), 100, Color.white).text = Strings.Get("settings.title");
+            screen.AddToggle(safe, "sound", 0, settings.Sound, on => settings.Sound = on);
+            screen.AddToggle(safe, "music", 1, settings.Music, on => settings.Music = on);
+            screen.AddToggle(safe, "haptics", 2, settings.Haptics, on => settings.Haptics = on);
+            screen.AddToggle(safe, "reduced_motion", 3, settings.ReducedMotion, on => settings.ReducedMotion = on);
 
             screen._version = UiFactory.Text(UiFactory.Rect(safe, "Version", bottom, new Vector2(900, 100), new Vector2(0, 320)), 44, new Color(1f, 1f, 1f, 0.6f));
-            screen._version.text = "Version " + Application.version;
-            UiFactory.Button(safe, "Back", "Back", bottom, new Vector2(600, 170), new Vector2(0, 160), screen.PressBack);
+            screen._version.text = Strings.Format("settings.version", Application.version);
+            UiFactory.Button(safe, "Back", Strings.Get("settings.back"), bottom, new Vector2(600, 170), new Vector2(0, 160), screen.PressBack);
             return screen;
         }
 
         public string VersionText => _version != null ? _version.text : "";
 
-        /// <param name="name">"Sound", "Music", "Haptics" or "Reduced motion".</param>
-        public bool IsOn(string name) => _toggles[name].isOn;
+        /// <param name="id">"sound", "music", "haptics" or "reduced_motion": the same in every language.</param>
+        public bool IsOn(string id) => _toggles[id].isOn;
 
         /// <summary>Sets a toggle the way a tap does, so the change is stored and reported.</summary>
-        public void SetToggle(string name, bool on) => _toggles[name].isOn = on;
+        public void SetToggle(string id, bool on) => _toggles[id].isOn = on;
 
         /// <summary>What the Back button does; tests call it directly.</summary>
         public void PressBack() => _back?.Invoke();
 
         /// <summary>A row the whole width of which toggles: the label on the left, a box with a check on the right.</summary>
-        void AddToggle(Transform parent, string name, int index, bool on, Action<bool> store)
+        void AddToggle(Transform parent, string id, int index, bool on, Action<bool> store)
         {
-            var row = UiFactory.Rect(parent, name, new Vector2(0.5f, 1f), new Vector2(900, 150), new Vector2(0, -420 - index * 180));
+            var row = UiFactory.Rect(parent, id, new Vector2(0.5f, 1f), new Vector2(900, 150), new Vector2(0, -420 - index * 180));
             row.gameObject.AddComponent<Image>().color = Color.clear;   // makes the label tappable too
             var label = UiFactory.Text(UiFactory.Rect(row, "Label", new Vector2(0f, 0.5f), new Vector2(700, 150), new Vector2(350, 0)), 64, Color.white);
             label.alignment = TextAnchor.MiddleLeft;
-            label.text = name;
+            label.text = Strings.Get("settings." + id);
 
             var box = UiFactory.Rect(row, "Box", new Vector2(1f, 0.5f), new Vector2(120, 120), new Vector2(-60, 0));
             var background = box.gameObject.AddComponent<Image>();
@@ -76,7 +76,7 @@ namespace BlockPuzzle.Game
                 store(value);
                 _changed?.Invoke();
             });
-            _toggles.Add(name, toggle);
+            _toggles.Add(id, toggle);
         }
     }
 }

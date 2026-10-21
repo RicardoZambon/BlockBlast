@@ -78,11 +78,11 @@ namespace BlockPuzzle.Game
 
         static string? Praise(PlacementOutcome outcome)
         {
-            if (outcome.BoardCleared) return "Board clear!";
-            if (outcome.Lines >= 4) return "Incredible!";
-            if (outcome.Lines == 3) return "Amazing!";
-            if (outcome.Lines == 2) return "Great!";
-            if (outcome.Lines == 1 && outcome.Streak >= 3) return "Streak " + outcome.Streak + "!";
+            if (outcome.BoardCleared) return Strings.Get("praise.board_clear");
+            if (outcome.Lines >= 4) return Strings.Get("praise.incredible");
+            if (outcome.Lines == 3) return Strings.Get("praise.amazing");
+            if (outcome.Lines == 2) return Strings.Get("praise.great");
+            if (outcome.Lines == 1 && outcome.Streak >= 3) return Strings.Format("praise.streak", outcome.Streak);
             return null;
         }
     }

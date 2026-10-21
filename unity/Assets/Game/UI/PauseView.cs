@@ -18,9 +18,9 @@ namespace BlockPuzzle.Game
             view._resume = resume;
             view._home = home;
             var centre = new Vector2(0.5f, 0.5f);
-            UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 300)), 110, Color.white).text = "Paused";
-            UiFactory.Button(root, "Resume", "Resume", centre, new Vector2(600, 170), new Vector2(0, 40), view.PressResume);
-            UiFactory.Button(root, "Home", "Home", centre, new Vector2(600, 170), new Vector2(0, -180), view.PressHome);
+            UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 300)), 110, Color.white).text = Strings.Get("pause.title");
+            UiFactory.Button(root, "Resume", Strings.Get("pause.resume"), centre, new Vector2(600, 170), new Vector2(0, 40), view.PressResume);
+            UiFactory.Button(root, "Home", Strings.Get("common.home"), centre, new Vector2(600, 170), new Vector2(0, -180), view.PressHome);
             view.Hide();
             return view;
         }

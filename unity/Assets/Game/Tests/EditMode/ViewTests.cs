@@ -187,16 +187,16 @@ namespace BlockPuzzle.Game.Tests
             var screen = SettingsScreen.Create(Canvas(), settings, () => changes++, () => { });
             Assert.AreEqual(0, changes, "building the screen changes nothing");
 
-            screen.SetToggle("Sound", false);
+            screen.SetToggle("sound", false);
             Assert.AreEqual((false, true, true, false), Values(settings));
-            screen.SetToggle("Music", false);
+            screen.SetToggle("music", false);
             Assert.AreEqual((false, false, true, false), Values(settings));
-            screen.SetToggle("Haptics", false);
+            screen.SetToggle("haptics", false);
             Assert.AreEqual((false, false, false, false), Values(settings));
-            screen.SetToggle("Reduced motion", true);
+            screen.SetToggle("reduced_motion", true);
             Assert.AreEqual((false, false, false, true), Values(settings));
             Assert.AreEqual(4, changes);
-            Assert.IsTrue(screen.IsOn("Reduced motion"));
+            Assert.IsTrue(screen.IsOn("reduced_motion"));
         }
 
         [Test]

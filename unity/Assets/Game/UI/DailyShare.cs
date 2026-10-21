@@ -14,8 +14,8 @@ namespace BlockPuzzle.Game
         public static string Text(string product, int day, int score, int streak)
         {
             string date = DailyPuzzle.DateOf(day).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            string text = product + " Daily " + date + ": " + score.ToString(CultureInfo.InvariantCulture) + " points";
-            if (streak > 0) text += ", " + streak.ToString(CultureInfo.InvariantCulture) + "-day streak";
+            string text = Strings.Format("share.result", product, date, score);
+            if (streak > 0) text += Strings.Format("share.streak", streak);
             return Link.Length > 0 ? text + " " + Link : text;
         }
 
@@ -29,7 +29,7 @@ namespace BlockPuzzle.Game
             intent.Call<AndroidJavaObject>("setAction", intentClass.GetStatic<string>("ACTION_SEND")).Dispose();
             intent.Call<AndroidJavaObject>("setType", "text/plain").Dispose();
             intent.Call<AndroidJavaObject>("putExtra", intentClass.GetStatic<string>("EXTRA_TEXT"), text).Dispose();
-            using var chooser = intentClass.CallStatic<AndroidJavaObject>("createChooser", intent, "Share");
+            using var chooser = intentClass.CallStatic<AndroidJavaObject>("createChooser", intent, Strings.Get("share.chooser"));
             using var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
             using var activity = player.GetStatic<AndroidJavaObject>("currentActivity");
             activity.Call("startActivity", chooser);

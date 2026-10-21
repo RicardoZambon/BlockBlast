@@ -17,7 +17,7 @@ namespace BlockPuzzle.Game
         Action? _home;
 
         /// <summary>Classic's panel: Play again and Home.</summary>
-        public static GameOverView Create(Transform canvas, Action playAgain, Action home) => Create(canvas, "Game over", playAgain, null, home);
+        public static GameOverView Create(Transform canvas, Action playAgain, Action home) => Create(canvas, Strings.Get("game_over.title"), playAgain, null, home);
 
         public static GameOverView Create(Transform canvas, string title, Action? playAgain, Action? share, Action home)
         {
@@ -38,15 +38,15 @@ namespace BlockPuzzle.Game
             var size = new Vector2(600, 170);
             if (playAgain != null)
             {
-                UiFactory.Button(root, "Play again", "Play again", centre, size, new Vector2(0, y), view.PressPlayAgain);
+                UiFactory.Button(root, "Play again", Strings.Get("game_over.play_again"), centre, size, new Vector2(0, y), view.PressPlayAgain);
                 y -= 200;
             }
             if (share != null)
             {
-                UiFactory.Button(root, "Share", "Share", centre, size, new Vector2(0, y), view.PressShare);
+                UiFactory.Button(root, "Share", Strings.Get("game_over.share"), centre, size, new Vector2(0, y), view.PressShare);
                 y -= 200;
             }
-            UiFactory.Button(root, "Home", "Home", centre, size, new Vector2(0, y), view.PressHome);
+            UiFactory.Button(root, "Home", Strings.Get("common.home"), centre, size, new Vector2(0, y), view.PressHome);
             return view;
         }
 
@@ -64,7 +64,10 @@ namespace BlockPuzzle.Game
         /// <summary>Shows the panel. A streak above 0 adds a line for it.</summary>
         public void Show(int score, int best, int streak = 0)
         {
-            if (_scores != null) _scores.text = "Score " + score + "\nBest " + best + (streak > 0 ? "\n" + streak + "-day streak" : "");
+            if (_scores != null)
+            {
+                _scores.text = Strings.Format("game_over.scores", score, best) + (streak > 0 ? "\n" + Strings.Format("game_over.streak", streak) : "");
+            }
             gameObject.SetActive(true);
         }
 
