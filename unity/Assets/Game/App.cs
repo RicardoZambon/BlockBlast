@@ -35,6 +35,8 @@ namespace BlockPuzzle.Game
         readonly AdPolicySettings _adPolicy = new AdPolicySettings();
         DateTime? _lastFullScreenAd;
         bool _adsStarted;
+        IReviewPrompt _review = new StandInReviewPrompt();
+        IReminders _reminders = DefaultReminders();
         int _homeDay;
         bool _booted;
 
@@ -71,7 +73,7 @@ namespace BlockPuzzle.Game
         /// phone's language.
         /// </summary>
         public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null,
-            IConsentFlow? consent = null, IAdService? ads = null)
+            IConsentFlow? consent = null, IAdService? ads = null, IReviewPrompt? review = null, IReminders? reminders = null)
         {
             if (_booted) return;
             _booted = true;
@@ -81,6 +83,8 @@ namespace BlockPuzzle.Game
             _share = share;
             if (consent != null) _consent = consent;
             if (ads != null) _ads = ads;
+            if (review != null) _review = review;
+            if (reminders != null) _reminders = reminders;
             _saveStore = new SaveStore(Path.Combine(folder, SaveStore.FileName));
             if (_saveStore.TryRead(out var saved)) _save = saved;
             _settingsStore = new SettingsStore(Path.Combine(folder, SettingsStore.FileName));
@@ -199,6 +203,8 @@ namespace BlockPuzzle.Game
             game.Ads = _ads;
             game.BetweenGames = ShowInterstitialThen;
             game.FullScreenAdShown += () => _lastFullScreenAd = _utcNow();
+            if (mode is ClassicMode) game.GameRecorded += () => OnClassicRecorded(game);
+            else if (mode is DailyMode) game.GameRecorded += OnDailyRecorded;
             return game;
         }
 
@@ -224,5 +230,65 @@ namespace BlockPuzzle.Game
         }
 
         void SaveSettings() => _settingsStore?.Save(_settings);
+
+        static IReminders DefaultReminders()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return new AndroidReminders();
+#else
+            return new StandInReminders();
+#endif
+        }
+
+        /// <summary>A finished Classic game: a rating request after a new best, by RetentionRules (3.7).</summary>
+        void OnClassicRecorded(GameController game)
+        {
+            int today = Today;
+            if (!RetentionRules.ShouldAskForRating(game.LastGameSetNewBest, _save.NextGameIndex, _save.RatingAskedDay, today)) return;
+            _save.RatingAskedDay = today;   // written with the finished game, right after this
+            _review.Request();
+        }
+
+        /// <summary>
+        /// A finished Daily: after the first one, ask once whether reminders may show. After every one, if they may,
+        /// schedule the next reminder, replacing the last.
+        /// </summary>
+        void OnDailyRecorded()
+        {
+            if (RetentionRules.ShouldAskForReminders(_save.Daily.Record, _save.RemindersAsked))
+            {
+                _save.RemindersAsked = true;   // written with the finished Daily
+                StartCoroutine(_reminders.RequestPermission(allowed =>
+                {
+                    _save.RemindersOn = allowed;
+                    if (allowed) ScheduleReminder();
+                    Persist();   // the answer can come after the Daily was saved
+                }));
+            }
+            else if (_save.RemindersOn)
+            {
+                ScheduleReminder();
+            }
+        }
+
+        void ScheduleReminder()
+        {
+            var offset = TimeZoneInfo.Local.GetUtcOffset(_utcNow());
+            _reminders.Schedule(RetentionRules.NextReminderUtc(_save.Daily.Record.LastDay, offset), Application.productName,
+                Strings.Get("notify.daily_ready"));
+        }
+
+        /// <summary>Writes the save outside a game screen; a failure is logged, like the game's own saves.</summary>
+        void Persist()
+        {
+            try
+            {
+                _saveStore?.Write(_save);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                Debug.LogWarning("Couldn't save: " + e.Message);
+            }
+        }
     }
 }

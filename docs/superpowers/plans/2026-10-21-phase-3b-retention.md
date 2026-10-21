@@ -46,4 +46,27 @@
 
 ## Results
 
-(Filled in at the end.)
+Built on 2026-10-21, test-first.
+
+- **Tests:** 143 EditMode and 64 PlayMode tests pass, and the 173 .NET tests are unchanged.
+  - `RetentionRules` has 6 tests, including the reminder time in UTC−3, UTC+0 and UTC+7.
+  - `RetentionFlowTests`, through App with fakes, covers:
+    - a rating after a new best once 5 games are finished;
+    - none without a new best;
+    - the first Daily asking about reminders and scheduling one;
+    - a later Daily rescheduling without asking again;
+    - a refused permission never being asked again.
+- **Android:**
+  - Reminders are real, through Unity Mobile Notifications 2.5.0: one "daily" channel and at most one scheduled reminder.
+  - Android 13 and later ask the player; older versions allow it.
+  - The APK builds with them: 64 MB.
+- **Stand-ins:**
+  - The store review prompt waits for Google's In-App Review plugin and StoreKit's prompt.
+  - iOS reminders wait for the iOS build (master plan 0.6).
+
+Decisions made while building:
+- **"New best"** compares the score with the best from before the game started, since the saved best rises during play. A game resumed after a kill doesn't count a best it had already set.
+- **`GameRecorded` fires before the game's own save,** so the day a rating was asked, and that reminders were asked about, are written with the finished game. The reminder answer can come later, so App saves it itself.
+- **The package's iOS default asked for permission at launch.** `NotificationsSettings.asset` now says no, and `ProjectSettingsTests` checks it, so permission is asked for only after the first Daily, as planned.
+- **Reboots:** rescheduling after the phone restarts is off. It would add a boot permission; the next finished Daily schedules the next reminder anyway.
+- **Reminders end after a missed day,** because each finished Daily schedules only the next one. A player who stops isn't nagged.

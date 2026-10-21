@@ -40,5 +40,35 @@ namespace BlockPuzzle.Game.Tests
 
             CollectionAssert.AreEqual(new[] { "Assets/Game/Scenes/Game.unity" }, EditorBuildSettings.scenes.Select(scene => scene.path).ToArray());
         }
+
+        [System.Serializable]
+        sealed class NotificationSettingsFile
+        {
+            public NotificationSettingsBody MonoBehaviour = new NotificationSettingsBody();
+        }
+
+        [System.Serializable]
+        sealed class NotificationSettingsBody
+        {
+            public KeyValues m_iOSNotificationSettingsValues = new KeyValues();
+        }
+
+        [System.Serializable]
+        sealed class KeyValues
+        {
+            public string[] m_Keys = new string[0];
+            public string[] m_Values = new string[0];
+
+            public string Get(string key) => m_Values[System.Array.IndexOf(m_Keys, key)];
+        }
+
+        /// <summary>Master plan 3.7: notification permission is asked for after the first Daily, never at launch.</summary>
+        [Test]
+        public void Notifications_are_never_asked_for_at_launch()
+        {
+            var settings = UnityEngine.JsonUtility.FromJson<NotificationSettingsFile>(File.ReadAllText("ProjectSettings/NotificationsSettings.asset"));
+
+            Assert.AreEqual("False", settings.MonoBehaviour.m_iOSNotificationSettingsValues.Get("UnityNotificationRequestAuthorizationOnAppLaunch"));
+        }
     }
 }
