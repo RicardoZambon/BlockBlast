@@ -12,6 +12,9 @@ namespace BlockPuzzle.Game
         public static readonly Color Ghost = new Color(Filled.r, Filled.g, Filled.b, 0.45f);
         public static readonly Color Clearing = Hex(0xF7D154);
 
+        /// <summary>Buttons: darker than Filled, so their white labels pass 4.5:1.</summary>
+        public static readonly Color Button = Hex(0x2A6BC9);
+
         static Color Hex(int rgb) => new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
     }
 }

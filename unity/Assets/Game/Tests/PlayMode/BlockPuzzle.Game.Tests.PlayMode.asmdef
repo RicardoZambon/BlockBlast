@@ -6,7 +6,8 @@
         "BlockPuzzle.Core",
         "BlockPuzzle.Game",
         "BlockPuzzle.Game.Tests.Shared",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

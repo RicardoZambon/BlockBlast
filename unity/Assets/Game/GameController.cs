@@ -126,8 +126,8 @@ namespace BlockPuzzle.Game
             DebugOverlay.CreateIfDevelopment(safeArea);   // development builds only
             if (mode.CurrentGuide != null) Hint = TutorialHintView.Create(safeArea, SkipGuided);
             float boardMiddle = ScreenFraction(camera, Layout.BoardTopLeft.y - BoardHalfCells * Layout.CellSize);
-            var praise = UiFactory.FittedText(UiFactory.Rect(canvas, "Praise", new Vector2(0.5f, boardMiddle), new Vector2(900, 200), Vector2.zero),
-                110, Color.white);
+            var praise = UiFactory.Outlined(UiFactory.FittedText(UiFactory.Rect(canvas, "Praise", new Vector2(0.5f, boardMiddle), new Vector2(900, 200), Vector2.zero),
+                110, Color.white));
             Pause = PauseView.Create(canvas, TogglePause, RequestHome);
             GameOver = GameOverView.Create(canvas, mode.Title, mode.CanPlayAgain ? PlayAgain : (Action?)null,
                 mode.CanShare ? ShareResult : (Action?)null, RequestHome);
