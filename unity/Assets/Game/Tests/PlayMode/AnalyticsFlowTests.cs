@@ -54,6 +54,8 @@ namespace BlockPuzzle.Game.Tests
             public void ShowRewarded(Action<bool> finished) => finished(true);
             public void ShowBanner() { }
             public void HideBanner() { }
+            public event Action<AdRevenue>? RevenuePaid;
+            public void Pay(AdRevenue impression) => RevenuePaid?.Invoke(impression);
         }
 
         const int Day = 20747;   // 2026-10-21
@@ -126,6 +128,34 @@ namespace BlockPuzzle.Game.Tests
             _consent.Finish();
 
             CollectionAssert.AreEqual(new[] { "consent_result" }, _analytics.Names);
+        }
+
+        [UnityTest]
+        public IEnumerator A_paid_impression_logs_ad_impression_with_its_revenue()
+        {
+            Boot();
+            yield return null;
+
+            _ads.Pay(new AdRevenue("ADMOB_BIDDING", "REWARDED", "rewarded_unit", 0.02));
+
+            var impression = _analytics.Last("ad_impression");
+            Assert.AreEqual("AppLovin", impression["ad_platform"]);
+            Assert.AreEqual("ADMOB_BIDDING", impression["ad_source"]);
+            Assert.AreEqual("REWARDED", impression["ad_format"]);
+            Assert.AreEqual("rewarded_unit", impression["ad_unit_name"]);
+            Assert.AreEqual(0.02, impression["value"]);
+            Assert.AreEqual("USD", impression["currency"]);
+        }
+
+        [UnityTest]
+        public IEnumerator An_impression_with_an_unknown_revenue_logs_nothing()
+        {
+            Boot();
+            yield return null;
+
+            _ads.Pay(new AdRevenue("APPLOVIN_NETWORK", "BANNER", "banner_unit", -1));
+
+            CollectionAssert.DoesNotContain(_analytics.Names, "ad_impression");
         }
 
         [UnityTest]

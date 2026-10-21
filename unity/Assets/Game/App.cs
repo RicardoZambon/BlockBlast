@@ -110,10 +110,22 @@ namespace BlockPuzzle.Game
         {
             if (_adsStarted) return;
             _adsStarted = true;
+            _ads.RevenuePaid += LogRevenue;   // before Initialize, so no impression goes unlogged
             _ads.Initialize();
             _analytics.Open();
             _analytics.Log("consent_result", new Dictionary<string, object> { ["gdpr_applies"] = "unknown", ["att_status"] = "unknown" });   // real values come with UMP and ATT (3.2)
             Show(Current);   // the banner, if a game screen is already up
+        }
+
+        /// <summary>Every paid impression as an ad_impression event, unless its revenue is unknown (3.5).</summary>
+        void LogRevenue(AdRevenue impression)
+        {
+            if (AdRevenueEvent.TryParameters(impression, out var parameters)) _analytics.Log(AdRevenueEvent.Name, parameters);
+        }
+
+        void OnDestroy()
+        {
+            if (_adsStarted) _ads.RevenuePaid -= LogRevenue;
         }
 
         /// <summary>Whether AdPolicy lets an interstitial show between games now: the grace games, then the cooldown.</summary>

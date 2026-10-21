@@ -24,6 +24,9 @@ namespace BlockPuzzle.Game
 
         void ShowBanner();
         void HideBanner();
+
+        /// <summary>Every paid impression, of every format: MAX's OnAdRevenuePaidEvent (3.5).</summary>
+        event Action<AdRevenue>? RevenuePaid;
     }
 
     /// <summary>Until Google's consent form is wired in with MAX (3.2, 3.3): finishes at once.</summary>
@@ -56,6 +59,13 @@ namespace BlockPuzzle.Game
 
         public void HideBanner()
         {
+        }
+
+        /// <summary>No ad network, so nothing is ever paid.</summary>
+        public event Action<AdRevenue>? RevenuePaid
+        {
+            add { }
+            remove { }
         }
     }
 
