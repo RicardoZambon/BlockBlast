@@ -31,3 +31,10 @@ Built on 2026-10-21, test-first.
 - **Coverage:** every language has all 37 keys, with the same placeholders as English.
 - **Font:** the built-in font has the accented Latin letters these languages need (á, ã, ç, é, í, ñ, ó, õ, ú, ¡).
 - **Still yours:** a native speaker's review of each draft. Also the choice between keeping this code table and moving it into Unity's Localization package. That package needs Addressables in the build; for about 40 strings the table is simpler, and the keys carry over either way.
+
+**Added later the same day: every text fits.**
+- **The test:** `TextFitTests` builds every screen in each language on the narrowest canvas (9:21), with the longest values it can show: a 365-day streak, 7-digit scores and a price in reais. Each text must show whole in its box:
+  - a best-fit text at its smallest size;
+  - any other text at its own size.
+- **What it found:** one overflow. Indonesian's "Permainan selesai" was 903 units wide at the game-over title's size, against a 900-unit box. That title now shrinks to fit, as button labels do.
+- **Praise words:** they're a best-fit text in a 900×200 box, and the longest ("Tabuleiro limpo!") fits there at any size, so they need no test.

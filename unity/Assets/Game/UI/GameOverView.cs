@@ -30,7 +30,8 @@ namespace BlockPuzzle.Game
             view._home = home;
             view._revive = revive;
             var centre = new Vector2(0.5f, 0.5f);
-            UiFactory.Text(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 460)), 110, Color.white).text = title;
+            // Shrinks to fit: "Permainan selesai" (Indonesian) is wider at full size than the box on a 9:21 screen.
+            UiFactory.FittedText(UiFactory.Rect(root, "Title", centre, new Vector2(900, 160), new Vector2(0, 460)), 110, Color.white).text = title;
             view._scores = UiFactory.Text(UiFactory.Rect(root, "Scores", centre, new Vector2(900, 220), new Vector2(0, 240)), 64, Color.white);
 
             // Reserved now, so adding the rewarded revive in Phase 3 doesn't move the buttons.
