@@ -8,7 +8,8 @@ fail=0
 check() {   # check FILE LIMIT [bytes]: characters, or bytes for Apple's keywords field
   local count unit=characters flag=-m
   [ "${3:-}" = bytes ] && unit=bytes && flag=-c
-  count=$(printf %s "$(cat "$1")" | wc "$flag")   # $(...) drops the final newline, which the stores don't count
+  # $(...) drops the final newline, which the stores don't count; tr drops the carriage returns a Windows checkout adds.
+  count=$(printf %s "$(tr -d '\r' < "$1")" | wc "$flag")
   if [ "$count" -gt "$2" ]; then
     echo "::error file=$1::$count $unit, over the limit of $2"
     fail=1
