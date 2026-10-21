@@ -36,10 +36,13 @@ All of it goes through GameCI in GitHub Actions, and it's skipped until you add 
 
 Written on 2026-10-21.
 - **Checked against GameCI's v4 sources:** a non-empty keystore name turns custom signing on (`AndroidSettings.cs`), so the workflow passes the name only when the keystore secret exists. Otherwise a build without it would fail looking for the file.
-- **Not run yet:**
-  - The Unity jobs need your licence secrets, so on this pull request only the licence check runs and the rest skip.
-  - That run still proves GitHub accepts the workflow file.
-  - Once the secrets exist, the first run on `main` is the real check.
+- **On the pull request:** the Unity jobs skipped as intended, since the secrets didn't exist yet. The licence check ran, which proved GitHub accepts the workflow file.
+- **First full run:** you added the secrets on 2026-10-21, and Claude ran the workflow on `main` ([run 39592017893](https://github.com/RicardoZambon/BlockBlast/actions/runs/39592017893)). Everything passed, with no Library cache yet:
+  - the licence check, in 3 s;
+  - Unity's tests: all 280 (193 EditMode, 87 PlayMode), in 5 minutes;
+  - the Android App Bundle, signed with Unity's debug key until the keystore secrets exist: a 33 MB artifact, in 25 minutes;
+  - the Xcode project: a 235 MB artifact, in 8 minutes.
+- **If you later require the Unity tests on `main`:** require the `tests` job's check. The test runner's own "Unity tests" check reports a "neutral" result even when every test passes.
 - **Still to do for 4.7, with your accounts:**
   - The macOS job that archives the iOS build and uploads it to TestFlight with fastlane, using an App Store Connect API key and your signing certificates.
   - fastlane `supply` for Play's internal track, using a service-account key.
