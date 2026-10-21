@@ -20,6 +20,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 3d plan](docs/superpowers/plans/2026-10-21-phase-3d-purchases.md): Remove Ads and Restore Purchases
 - [Phase 3e plan](docs/superpowers/plans/2026-10-21-phase-3e-ad-revenue.md): an `ad_impression` event for every paid ad
 - [Phase 3f plan](docs/superpowers/plans/2026-10-21-phase-3f-consent.md): consent results for analytics, and Privacy Settings
+- [Phase 3g plan](docs/superpowers/plans/2026-10-21-phase-3g-remote-config.md): Remote Config's tuning keys, with bundled defaults
 
 ## Layout
 
