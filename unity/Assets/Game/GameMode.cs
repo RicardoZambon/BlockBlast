@@ -37,6 +37,9 @@ namespace BlockPuzzle.Game
         /// <summary>Whether game over may offer a rewarded revive: Classic only, as the Daily is one fair attempt.</summary>
         public virtual bool CanRevive => false;
 
+        /// <summary>Whether the game Finished last recorded beat the best score from before it started.</summary>
+        public virtual bool FinishedWithNewBest => false;
+
         /// <summary>What Share posts for a finished game.</summary>
         public virtual string ShareText(GameSession finished) => "";
 
@@ -106,11 +109,25 @@ namespace BlockPuzzle.Game
             return game != null && !game.IsGameOver;
         }
 
-        public override GameSession? Resume() => _save.HasGame ? ResumeSnapshot(_save.Game) : null;
+        // The best before this game started: InProgress raises the saved best as the game goes, so the comparison at the
+        // end needs the value from before. A game resumed after setting a best mid-way doesn't count again.
+        int _bestBeforeGame;
+        bool _finishedWithNewBest;
 
-        public override GameSession StartNew() =>
-            new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
+        public override GameSession? Resume()
+        {
+            _bestBeforeGame = _save.BestScore;
+            return _save.HasGame ? ResumeSnapshot(_save.Game) : null;
+        }
+
+        public override GameSession StartNew()
+        {
+            _bestBeforeGame = _save.BestScore;
+            return new GameSession(PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings(), SeedSource.NewSeed(),
                 _save.NextGameIndex, _save.NextRecentQuickLosses);
+        }
+
+        public override bool FinishedWithNewBest => _finishedWithNewBest;
 
         public override void InProgress(GameSession game)
         {
@@ -121,6 +138,7 @@ namespace BlockPuzzle.Game
 
         public override void Finished(GameSession game)
         {
+            _finishedWithNewBest = game.Score > _bestBeforeGame;
             if (game.Score > _save.BestScore) _save.BestScore = game.Score;
             _save.HasGame = false;
             _save.NextGameIndex = game.GameIndex + 1;

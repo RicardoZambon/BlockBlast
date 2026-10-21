@@ -28,6 +28,14 @@ namespace BlockPuzzle.Game
         /// <summary>Whether the first-time tutorial was finished or skipped.</summary>
         public bool TutorialDone;
 
+        /// <summary>The day the app last asked for a rating, as a DailyPuzzle.DayNumber; −1 if never.</summary>
+        public int RatingAskedDay = -1;
+
+        /// <summary>Whether the player was asked about Daily reminders (only once), and whether they said yes.</summary>
+        public bool RemindersAsked;
+
+        public bool RemindersOn;
+
         /// <summary>The Daily Puzzle, kept apart from Classic: a save from before the Daily loads with an empty one.</summary>
         public DailySave Daily = new DailySave();
     }

@@ -31,6 +31,12 @@ namespace BlockPuzzle.Game
         /// <summary>Raised just before a rewarded ad shows, so App can space interstitials after it.</summary>
         public event Action? FullScreenAdShown;
 
+        /// <summary>Raised when a finished game is recorded, just before the save is written, so App can add to that save.</summary>
+        public event Action? GameRecorded;
+
+        /// <summary>Whether the game just recorded beat the best score from before it started.</summary>
+        public bool LastGameSetNewBest => _booted && _mode.FinishedWithNewBest;
+
         /// <summary>The ad service for the rewarded revive; set by App. Without one, no revive is offered.</summary>
         public IAdService? Ads { get; set; }
 
@@ -220,6 +226,7 @@ namespace BlockPuzzle.Game
             _pendingFinish = false;
             GameOver.ShowRevive(false);
             _mode.Finished(Game);
+            GameRecorded?.Invoke();
             Save();
         }
 
@@ -316,6 +323,7 @@ namespace BlockPuzzle.Game
             else
             {
                 _mode.Finished(game);
+                GameRecorded?.Invoke();
                 GameOver.Show(game.Score, _mode.Best, _mode.Streak);
             }
             GameOver.ShowRevive(offerRevive);
