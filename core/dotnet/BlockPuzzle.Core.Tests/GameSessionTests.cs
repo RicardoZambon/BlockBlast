@@ -35,6 +35,16 @@ public class GameSessionTests
             GameSession.FromSnapshot(snapshot, PieceCatalog.Standard, GeneratorSettings.Baseline(), new ScoringSettings()));
 
     [Fact]
+    public void A_game_knows_its_generator_profile_new_or_resumed()
+    {
+        var hard = new GameSession(PieceCatalog.Standard, GeneratorSettings.Hard(), new ScoringSettings(), seed: 5);
+        var resumed = GameSession.FromSnapshot(hard.ToSnapshot(), PieceCatalog.Standard, GeneratorSettings.Gentle(), new ScoringSettings());
+
+        Assert.Equal("hard", hard.GeneratorProfile);
+        Assert.Equal("gentle", resumed.GeneratorProfile);
+    }
+
+    [Fact]
     public void Bad_settings_are_reported_as_a_settings_error_not_as_a_bad_save()
     {
         var settings = GeneratorSettings.Baseline();

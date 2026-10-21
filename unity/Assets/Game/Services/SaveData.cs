@@ -17,6 +17,14 @@ namespace BlockPuzzle.Game
 
         public GameSnapshot Game = new GameSnapshot();
 
+        /// <summary>
+        /// The generator and scoring Game started with, so Remote Config changes never touch a game in progress (3.1). A
+        /// save from before them loads with the baseline, which is what every game used then.
+        /// </summary>
+        public GeneratorSettings GameGenerator = GeneratorSettings.Baseline();
+
+        public ScoringSettings GameScoring = new ScoringSettings();
+
         /// <summary>The next game's index: how many games this player started before it.</summary>
         public int NextGameIndex;
 
