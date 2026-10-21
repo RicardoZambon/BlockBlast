@@ -193,8 +193,8 @@ namespace BlockPuzzle.Game.Tests
 
             var app = Boot();
             yield return null;
-            Assert.IsTrue(app.Settings.IsOn("Sound"));
-            Assert.IsFalse(app.Settings.IsOn("Reduced motion"));
+            Assert.IsTrue(app.Settings.IsOn("sound"));
+            Assert.IsFalse(app.Settings.IsOn("reduced_motion"));
             Assert.AreEqual("Continue", app.Home.PlayLabel);
 
             app.Home.PressPlay();
@@ -244,16 +244,16 @@ namespace BlockPuzzle.Game.Tests
             yield return null;
             first.Home.PressSettings();
             Assert.AreEqual(AppScreen.Settings, first.Current);
-            first.Settings.SetToggle("Music", false);
-            first.Settings.SetToggle("Reduced motion", true);
+            first.Settings.SetToggle("music", false);
+            first.Settings.SetToggle("reduced_motion", true);
             Object.DestroyImmediate(first.gameObject);   // no quit callbacks: each change was saved when it was made
 
             var second = Boot();
             yield return null;
-            Assert.IsTrue(second.Settings.IsOn("Sound"));
-            Assert.IsFalse(second.Settings.IsOn("Music"));
-            Assert.IsTrue(second.Settings.IsOn("Haptics"));
-            Assert.IsTrue(second.Settings.IsOn("Reduced motion"));
+            Assert.IsTrue(second.Settings.IsOn("sound"));
+            Assert.IsFalse(second.Settings.IsOn("music"));
+            Assert.IsTrue(second.Settings.IsOn("haptics"));
+            Assert.IsTrue(second.Settings.IsOn("reduced_motion"));
             Assert.AreEqual("Version " + Application.version, second.Settings.VersionText);
         }
 

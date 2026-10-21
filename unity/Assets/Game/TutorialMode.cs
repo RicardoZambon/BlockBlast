@@ -14,9 +14,9 @@ namespace BlockPuzzle.Game
 
         static readonly (string piece, int row, int col, string hint)[] Steps =
         {
-            ("o2", 2, 2, "Drag the piece onto the board"),
-            ("i3h", 7, 5, "Fill a row to clear it"),
-            ("i3v", 5, 7, "Columns clear too"),
+            ("o2", 2, 2, "tutorial.drag"),
+            ("i3h", 7, 5, "tutorial.row"),
+            ("i3v", 5, 7, "tutorial.column"),
         };
 
         static readonly Board Start = Board.Parse(
@@ -43,7 +43,7 @@ namespace BlockPuzzle.Game
             !save.Daily.HasGame && save.Daily.Record.LastDay < 0;
 
         public override Guide? CurrentGuide =>
-            IsComplete ? (Guide?)null : new Guide(Slot, Steps[_step].row, Steps[_step].col, Steps[_step].hint);
+            IsComplete ? (Guide?)null : new Guide(Slot, Steps[_step].row, Steps[_step].col, Strings.Get(Steps[_step].hint));
 
         public override bool IsComplete => _step >= Steps.Length;
 

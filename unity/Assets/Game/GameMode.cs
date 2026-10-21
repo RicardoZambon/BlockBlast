@@ -28,7 +28,7 @@ namespace BlockPuzzle.Game
         /// <summary>The streak game over shows; 0 shows none.</summary>
         public virtual int Streak => 0;
 
-        public virtual string Title => "Game over";
+        public virtual string Title => Strings.Get("game_over.title");
 
         public virtual bool CanPlayAgain => true;
 
@@ -180,7 +180,7 @@ namespace BlockPuzzle.Game
 
         public override int Streak => _daily.Record.StreakOn(_today);
 
-        public override string Title => "Daily done";
+        public override string Title => Strings.Get("game_over.daily_title");
 
         public override bool CanPlayAgain => false;
 

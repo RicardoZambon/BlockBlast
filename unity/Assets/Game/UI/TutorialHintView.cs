@@ -18,7 +18,7 @@ namespace BlockPuzzle.Game
             view._skip = skip;
             // Between Skip on the left and the development Bench button on the right.
             view._text = UiFactory.FittedText(UiFactory.Rect(root, "Hint", new Vector2(0.5f, 1f), new Vector2(620, 120), new Vector2(0, -70)), 56, Color.white);
-            UiFactory.Button(root, "Skip", "Skip", new Vector2(0f, 1f), new Vector2(200, 100), new Vector2(130, -65), view.PressSkip);
+            UiFactory.Button(root, "Skip", Strings.Get("tutorial.skip"), new Vector2(0f, 1f), new Vector2(200, 100), new Vector2(130, -65), view.PressSkip);
             return view;
         }
 

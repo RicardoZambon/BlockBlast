@@ -26,11 +26,11 @@ namespace BlockPuzzle.Game
             var centre = new Vector2(0.5f, 0.5f);
 
             UiFactory.Text(UiFactory.Rect(safe, "Title", centre, new Vector2(1000, 200), new Vector2(0, 520)), 120, Color.white).text = Application.productName;
-            screen._playLabel = UiFactory.Button(safe, "Play", "Play", centre, new Vector2(700, 200), new Vector2(0, 120), screen.PressPlay)
+            screen._playLabel = UiFactory.Button(safe, "Play", Strings.Get("home.play"), centre, new Vector2(700, 200), new Vector2(0, 120), screen.PressPlay)
                 .GetComponentInChildren<Text>();
-            screen._daily = UiFactory.Button(safe, "Daily", "Daily", centre, new Vector2(700, 170), new Vector2(0, -140), screen.PressDaily);
+            screen._daily = UiFactory.Button(safe, "Daily", Strings.Get("home.daily"), centre, new Vector2(700, 170), new Vector2(0, -140), screen.PressDaily);
             screen._dailyLabel = screen._daily.GetComponentInChildren<Text>();
-            UiFactory.Button(safe, "Settings", "Settings", centre, new Vector2(700, 170), new Vector2(0, -360), screen.PressSettings);
+            UiFactory.Button(safe, "Settings", Strings.Get("home.settings"), centre, new Vector2(700, 170), new Vector2(0, -360), screen.PressSettings);
             return screen;
         }
 
@@ -46,14 +46,14 @@ namespace BlockPuzzle.Game
         /// </summary>
         public void Refresh(bool gameInProgress, DailyState daily, int streak)
         {
-            if (_playLabel != null) _playLabel.text = gameInProgress ? "Continue" : "Play";
+            if (_playLabel != null) _playLabel.text = Strings.Get(gameInProgress ? "home.continue" : "home.play");
             if (_dailyLabel != null)
             {
                 _dailyLabel.text = daily switch
                 {
-                    DailyState.Continue => "Daily · continue",
-                    DailyState.Done => "Daily · done",
-                    _ => streak > 0 ? "Daily · " + streak + "-day streak" : "Daily",
+                    DailyState.Continue => Strings.Get("home.daily_continue"),
+                    DailyState.Done => Strings.Get("home.daily_done"),
+                    _ => streak > 0 ? Strings.Format("home.daily_streak", streak) : Strings.Get("home.daily"),
                 };
             }
             if (_daily != null) _daily.interactable = daily != DailyState.Done;
