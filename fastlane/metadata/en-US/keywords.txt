@@ -1,0 +1,1 @@
+block,puzzle,blocks,grid,8x8,brain,logic,daily,relax,offline,classic,tile,fit,lines,streak

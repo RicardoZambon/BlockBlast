@@ -22,6 +22,7 @@ An original 8×8 block puzzle for iOS and Android (working title). This reposito
 - [Phase 3f plan](docs/superpowers/plans/2026-10-21-phase-3f-consent.md): consent results for analytics, and Privacy Settings
 - [Phase 3g plan](docs/superpowers/plans/2026-10-21-phase-3g-remote-config.md): Remote Config's tuning keys, with bundled defaults
 - [Phase 4a plan](docs/superpowers/plans/2026-10-21-phase-4a-automated-builds.md): Unity tests and builds in GitHub Actions, once the licence secrets exist
+- [Phase 4b plan](docs/superpowers/plans/2026-10-21-phase-4b-store-listings.md): store listing text in four languages, as fastlane metadata
 
 ## Layout
 

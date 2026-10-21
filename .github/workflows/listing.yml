@@ -1,0 +1,22 @@
+name: listing
+
+# The store listings in fastlane/metadata (master plan 4.3): every field within its store's limit, and no other game's
+# name anywhere.
+
+on:
+  pull_request:
+    paths: ['fastlane/**', '.github/workflows/listing.yml']
+  push:
+    branches: [main]
+    paths: ['fastlane/**', '.github/workflows/listing.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the limits and the names
+        run: bash fastlane/check-metadata.sh

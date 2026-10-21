@@ -1,0 +1,1 @@
+balok,puzzle,teka-teki,blok,8x8,otak,logika,harian,santai,offline,klasik,keping,baris
