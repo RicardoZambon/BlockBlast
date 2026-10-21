@@ -37,6 +37,7 @@ namespace BlockPuzzle.Game
         DateTime? _lastFullScreenAd;
         bool _adsStarted;
         ConsentGatedAnalytics _analytics = new ConsentGatedAnalytics(new StandInAnalytics());
+        IStore _store = new StandInStore();
         IReviewPrompt _review = new StandInReviewPrompt();
         IReminders _reminders = DefaultReminders();
         int _homeDay;
@@ -76,7 +77,7 @@ namespace BlockPuzzle.Game
         /// </summary>
         public void Boot(string folder, Func<DateTime>? utcNow = null, Action<string>? share = null, Language? language = null,
             IConsentFlow? consent = null, IAdService? ads = null, IReviewPrompt? review = null, IReminders? reminders = null,
-            IAnalytics? analytics = null)
+            IAnalytics? analytics = null, IStore? store = null)
         {
             if (_booted) return;
             _booted = true;
@@ -89,6 +90,7 @@ namespace BlockPuzzle.Game
             if (review != null) _review = review;
             if (reminders != null) _reminders = reminders;
             if (analytics != null) _analytics = new ConsentGatedAnalytics(analytics);
+            if (store != null) _store = store;
             _saveStore = new SaveStore(Path.Combine(folder, SaveStore.FileName));
             if (_saveStore.TryRead(out var saved)) _save = saved;
             _settingsStore = new SettingsStore(Path.Combine(folder, SettingsStore.FileName));
@@ -96,7 +98,8 @@ namespace BlockPuzzle.Game
 
             UiFactory.EnsureEventSystem(transform);
             Home = HomeScreen.Create(transform, PlayOrContinue, PlayDaily, ShowSettings);
-            Settings = SettingsScreen.Create(transform, _settings, SaveSettings, ShowHome);
+            Settings = SettingsScreen.Create(transform, _settings, SaveSettings, ShowHome, BuyRemoveAds, RestorePurchases);
+            _store.Initialize(SetOwnership);   // re-checks Remove Ads at every launch (3.6)
             ShowHome();
 
             // Consent first: no ad SDK starts, and so none collects anything, before the flow finishes (3.2).
@@ -117,7 +120,7 @@ namespace BlockPuzzle.Game
         public bool InterstitialAllowedNow()
         {
             double? since = _lastFullScreenAd == null ? (double?)null : (_utcNow() - _lastFullScreenAd.Value).TotalSeconds;
-            return AdPolicy.CanShowInterstitial(_adPolicy, ownsRemoveAds: false, _save.NextGameIndex, since, betweenGames: true);
+            return AdPolicy.CanShowInterstitial(_adPolicy, _save.OwnsRemoveAds, _save.NextGameIndex, since, betweenGames: true);
         }
 
         /// <summary>Between games: an interstitial when allowed and loaded, then the player's next step, shown or not.</summary>
@@ -230,7 +233,7 @@ namespace BlockPuzzle.Game
         void Show(AppScreen screen)
         {
             Current = screen;
-            if (_adsStarted && (screen == AppScreen.Game || screen == AppScreen.Daily)) _ads.ShowBanner();
+            if (_adsStarted && !_save.OwnsRemoveAds && (screen == AppScreen.Game || screen == AppScreen.Daily)) _ads.ShowBanner();
             else _ads.HideBanner();
             Home.gameObject.SetActive(screen == AppScreen.Home);
             Settings.gameObject.SetActive(screen == AppScreen.Settings);
@@ -240,6 +243,25 @@ namespace BlockPuzzle.Game
         }
 
         void SaveSettings() => _settingsStore?.Save(_settings);
+
+        /// <summary>The store's answer about Remove Ads; null (offline, not ready) keeps what was saved.</summary>
+        void SetOwnership(bool? owned)
+        {
+            if (owned.HasValue && owned.Value != _save.OwnsRemoveAds)
+            {
+                _save.OwnsRemoveAds = owned.Value;
+                Persist();
+            }
+            Settings.ShowRemoveAds(_save.OwnsRemoveAds, _store.RemoveAdsPrice);
+            if (_save.OwnsRemoveAds) _ads.HideBanner();
+        }
+
+        void BuyRemoveAds() => _store.BuyRemoveAds(succeeded =>
+        {
+            if (succeeded) SetOwnership(true);
+        });
+
+        void RestorePurchases() => _store.Restore(SetOwnership);
 
         static IReminders DefaultReminders()
         {
