@@ -19,8 +19,9 @@ namespace BlockPuzzle.Game
         Action? _back;
 
         /// <param name="removeAds">Buys Remove Ads; with restore, adds the two purchase buttons (master plan 3.6).</param>
+        /// <param name="privacy">Reopens the consent form: a Privacy Settings button, hidden until ShowPrivacySettings (3.2).</param>
         public static SettingsScreen Create(Transform parent, SettingsData settings, Action changed, Action back,
-            Action? removeAds = null, Action? restore = null)
+            Action? removeAds = null, Action? restore = null, Action? privacy = null)
         {
             var canvas = UiFactory.Canvas(parent, "Settings");
             var screen = canvas.gameObject.AddComponent<SettingsScreen>();
@@ -28,6 +29,7 @@ namespace BlockPuzzle.Game
             screen._back = back;
             screen._removeAds = removeAds;
             screen._restore = restore;
+            screen._privacy = privacy;
             var safe = SafeAreaPanel.Create(canvas);
             var top = new Vector2(0.5f, 1f);
             var bottom = new Vector2(0.5f, 0f);
@@ -43,6 +45,11 @@ namespace BlockPuzzle.Game
             {
                 screen._removeAdsButton = UiFactory.Button(safe, "Remove ads", Strings.Get("settings.remove_ads"), top, ButtonSize, new Vector2(0, ButtonRow(0)), screen.PressRemoveAds);
                 UiFactory.Button(safe, "Restore", Strings.Get("settings.restore"), top, ButtonSize, new Vector2(0, ButtonRow(1)), screen.PressRestore);
+            }
+            if (privacy != null)
+            {
+                screen._privacyButton = UiFactory.Button(safe, "Privacy", Strings.Get("settings.privacy"), top, ButtonSize, new Vector2(0, ButtonRow(2)), screen.PressPrivacySettings);
+                screen._privacyButton.gameObject.SetActive(false);
             }
 
             screen._version = UiFactory.Text(UiFactory.Rect(safe, "Version", bottom, new Vector2(900, 60), new Vector2(0, 250)), 44, new Color(1f, 1f, 1f, 0.6f));
@@ -98,6 +105,23 @@ namespace BlockPuzzle.Game
 
         /// <summary>What the Restore purchases button does; tests call it directly.</summary>
         public void PressRestore() => _restore?.Invoke();
+
+        Action? _privacy;
+        Button? _privacyButton;
+
+        public bool PrivacySettingsShown => _privacyButton != null && _privacyButton.gameObject.activeSelf;
+
+        /// <summary>Shows Privacy Settings where the player's region requires a way back into the consent form.</summary>
+        public void ShowPrivacySettings(bool shown)
+        {
+            if (_privacyButton != null) _privacyButton.gameObject.SetActive(shown);
+        }
+
+        /// <summary>What the Privacy Settings button does; like the button, nothing while it's hidden.</summary>
+        public void PressPrivacySettings()
+        {
+            if (PrivacySettingsShown) _privacy?.Invoke();
+        }
 
         /// <summary>A row the whole width of which toggles: the label on the left, a box with a check on the right.</summary>
         void AddToggle(Transform parent, string id, int index, bool on, Action<bool> store)

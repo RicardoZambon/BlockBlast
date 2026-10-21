@@ -21,6 +21,10 @@ namespace BlockPuzzle.Game.Tests
             public readonly List<(string name, IReadOnlyDictionary<string, object> parameters)> Events =
                 new List<(string, IReadOnlyDictionary<string, object>)>();
 
+            public void SetConsent(ConsentResult consent)
+            {
+            }
+
             public void Log(string name, IReadOnlyDictionary<string, object>? parameters = null) =>
                 Events.Add((name, parameters ?? new Dictionary<string, object>()));
 
@@ -31,16 +35,20 @@ namespace BlockPuzzle.Game.Tests
 
         sealed class FakeConsent : IConsentFlow
         {
-            Action? _finished;
+            Action<ConsentResult>? _finished;
             public bool FinishAtOnce = true;
 
-            public void Request(Action finished)
+            public void Request(Action<ConsentResult> finished)
             {
                 _finished = finished;
-                if (FinishAtOnce) finished();
+                if (FinishAtOnce) finished(ConsentResult.Unknown);
             }
 
-            public void Finish() => _finished?.Invoke();
+            public void Finish() => _finished?.Invoke(ConsentResult.Unknown);
+
+            public bool PrivacyOptionsRequired => false;
+
+            public void ShowPrivacyOptions(Action<ConsentResult> closed) => closed(ConsentResult.Unknown);
         }
 
         sealed class FakeAds : IAdService

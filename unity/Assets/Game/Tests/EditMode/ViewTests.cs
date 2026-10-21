@@ -122,7 +122,8 @@ namespace BlockPuzzle.Game.Tests
         /// <summary>Settings as a screen of this size shows it, with every row it can have.</summary>
         RectTransform SettingsSafeArea(int width, int height)
         {
-            var settings = SettingsScreen.Create(Canvas(), new SettingsData(), () => { }, () => { }, () => { }, () => { });
+            var settings = SettingsScreen.Create(Canvas(), new SettingsData(), () => { }, () => { }, () => { }, () => { }, () => { });
+            settings.ShowPrivacySettings(true);
             // The safe-area panel follows Screen only in Play mode, so size it for this screen.
             var safe = (RectTransform)settings.transform.Find("Safe area");
             safe.anchorMin = safe.anchorMax = new Vector2(0.5f, 0.5f);
@@ -137,7 +138,7 @@ namespace BlockPuzzle.Game.Tests
         {
             var safe = SettingsSafeArea(width, height);
             var screen = Bounds(safe);
-            var rows = new[] { "Title", "sound", "music", "haptics", "reduced_motion", "Remove ads", "Restore", "Version", "Back" }
+            var rows = new[] { "Title", "sound", "music", "haptics", "reduced_motion", "Remove ads", "Restore", "Privacy", "Version", "Back" }
                 .Select(name => (name, rect: Bounds(safe.Find(name)))).ToList();
 
             foreach (var (name, rect) in rows)
